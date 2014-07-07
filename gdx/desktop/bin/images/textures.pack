@@ -1,0 +1,33 @@
+
+textures.png
+format: RGBA8888
+filter: Nearest,Nearest
+repeat: none
+badlogic
+  rotate: false
+  xy: 1, 183
+  size: 256, 256
+  orig: 256, 256
+  offset: 0, 0
+  index: -1
+laura
+  rotate: false
+  xy: 1, 67
+  size: 104, 114
+  orig: 104, 114
+  offset: 0, 0
+  index: -1
+bucket
+  rotate: false
+  xy: 259, 375
+  size: 64, 64
+  orig: 64, 64
+  offset: 0, 0
+  index: -1
+droplet
+  rotate: false
+  xy: 1, 1
+  size: 64, 64
+  orig: 64, 64
+  offset: 0, 0
+  index: -1
