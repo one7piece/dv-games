@@ -1,0 +1,54 @@
+
+texture.png
+format: RGBA8888
+filter: Nearest,Nearest
+repeat: none
+background
+  rotate: false
+  xy: 1, 1
+  size: 800, 499
+  orig: 800, 499
+  offset: 0, 0
+  index: -1
+laura
+  rotate: false
+  xy: 803, 386
+  size: 104, 114
+  orig: 104, 114
+  offset: 0, 0
+  index: -1
+bucket-large
+  rotate: false
+  xy: 803, 284
+  size: 100, 100
+  orig: 100, 100
+  offset: 0, 0
+  index: -1
+bucket-large-front
+  rotate: false
+  xy: 909, 414
+  size: 100, 86
+  orig: 100, 86
+  offset: 0, 0
+  index: -1
+laura-compact
+  rotate: false
+  xy: 803, 187
+  size: 75, 95
+  orig: 75, 95
+  offset: 0, 0
+  index: -1
+bucket
+  rotate: false
+  xy: 803, 121
+  size: 64, 64
+  orig: 64, 64
+  offset: 0, 0
+  index: -1
+droplet
+  rotate: false
+  xy: 803, 55
+  size: 64, 64
+  orig: 64, 64
+  offset: 0, 0
+  index: -1
