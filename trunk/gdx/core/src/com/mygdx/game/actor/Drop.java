@@ -1,10 +1,11 @@
-package com.mygdx.game;
+package com.mygdx.game.actor;
 
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.scenes.scene2d.Actor;
+import com.mygdx.game.MyStage;
 
 public class Drop extends Actor {
 	TextureRegion image;
@@ -27,8 +28,10 @@ public class Drop extends Actor {
 	}
 	
 	public void act(float delta) {
-		// move drop down 200px per seconds
-		moveBy(0, -200*delta);
+		if (!((MyStage)getStage()).isAnimateLaura()) {
+			// move drop down 200px per seconds
+			moveBy(0, -200*delta);
+		}
 	}
 
 }
