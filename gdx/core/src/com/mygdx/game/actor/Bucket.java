@@ -1,4 +1,4 @@
-package com.mygdx.game;
+package com.mygdx.game.actor;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input.Keys;
@@ -10,6 +10,7 @@ import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.InputListener;
+import com.mygdx.game.MyStage;
 
 public class Bucket extends Actor {
 	TextureRegion image;
@@ -40,7 +41,11 @@ public class Bucket extends Actor {
 		batch.draw(image, getX(), getY());
 	}
 
+	@Override
 	public void act(float delta) {
+		if (((MyStage)getStage()).isAnimateLaura()) {
+			return;
+		}
 		
 		if (Gdx.input.isTouched()) {
 			touchPos.set(Gdx.input.getX(), Gdx.input.getY(), 0);
@@ -62,4 +67,13 @@ public class Bucket extends Actor {
 		if (getX() > 800 - image.getRegionWidth())
 			setX(800 - image.getRegionWidth());
 	}
+
+	public int getNumDropsCollected() {
+		return numDropsCollected;
+	}
+
+	public void setNumDropsCollected(int numDropsCollected) {
+		this.numDropsCollected = numDropsCollected;
+	}
+	
 }

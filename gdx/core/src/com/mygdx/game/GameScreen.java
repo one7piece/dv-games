@@ -11,9 +11,14 @@ import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.Touchable;
+import com.badlogic.gdx.scenes.scene2d.actions.MoveToAction;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.TimeUtils;
+import com.mygdx.game.actor.Bucket;
+import com.mygdx.game.actor.BucketFront;
+import com.mygdx.game.actor.Drop;
+import com.mygdx.game.actor.Laura;
 
 public class GameScreen implements Screen {
 	final MyGdxGame game;
@@ -28,7 +33,7 @@ public class GameScreen implements Screen {
 	BucketFront bucketFront;
 	Array<Drop> raindrops;
 	Laura laura;
-	Stage stage;
+	MyStage stage;
 
 	public GameScreen(final MyGdxGame game) {
 		this.game = game;
@@ -46,7 +51,7 @@ public class GameScreen implements Screen {
 		camera = new OrthographicCamera();
 		camera.setToOrtho(false, 800, 480);
 		
-		stage = new Stage();
+		stage = new MyStage();
 		Gdx.input.setInputProcessor(stage);
 		
 		Image background = new Image(atlas.findRegion("background"));
@@ -57,7 +62,7 @@ public class GameScreen implements Screen {
 		bucket.setTouchable(Touchable.enabled);		
 		stage.addActor(bucket);
 		
-		laura = new Laura(atlas);
+		laura = new Laura(atlas, laughSound);
 		stage.addActor(laura);
 		
 		bucketFront = new BucketFront(camera, atlas);
@@ -83,44 +88,25 @@ public class GameScreen implements Screen {
 		// tell the SpriteBatch to render in the
 		// coordinate system specified by the camera.
 		game.batch.setProjectionMatrix(camera.combined);
-
-		if (!laura.isVisible()) {
-			game.batch.begin();
-			game.font.draw(game.batch, "Drops Collected: " + bucket.numDropsCollected, 0, 480);
-			game.batch.end();
-			
-			stage.act(Gdx.graphics.getDeltaTime());
-			
-			if (bucket.numDropsCollected == 3) {
-				bucket.numDropsCollected = 0;
-				laura.setVisible(true);
-				laura.setX(bucket.getX() + (bucket.getWidth()-laura.getWidth())/2);
-				laura.setY(bucket.getY());
-				
-				bucketFront.setVisible(true);
-				bucketFront.setX(bucket.getX());
-				bucketFront.setY(bucket.getY());
-				
+		
+		boolean oldValue = stage.isAnimateLaura();
+		
+		stage.act(Gdx.graphics.getDeltaTime());
+		
+		stage.draw();
+		
+		if (oldValue != stage.isAnimateLaura()) {
+			if (stage.isAnimateLaura()) {
 				rainMusic.setVolume(0.2f);				
-				long id = laughSound.play(1.0f);
-				laughSound.setLooping(id, true);
-			}
-		} else {
-			laura.act(Gdx.graphics.getDeltaTime());
-			if (laura.displayTimeSecs > 20) {
-				laura.setVisible(false);
-				laura.displayTimeSecs = 0;
-				bucketFront.setVisible(false);
-				laughSound.stop();
+			} else {
 				rainMusic.setVolume(0.8f);				
 			}
 		}
-		
-		stage.draw();
 
-		if (laura.isVisible()) {
+		if (stage.isAnimateLaura()) {
 			return;
 		}
+		
 		if (TimeUtils.nanoTime() - lastDropTime > 1000000000) {
 			Drop raindrop = new Drop(atlas);
 			stage.addActor(raindrop);
@@ -133,16 +119,14 @@ public class GameScreen implements Screen {
 				Drop drop = (Drop)actor;
 				Rectangle dropBound = new Rectangle(drop.getX(), drop.getY(), drop.getWidth(), bucket.getHeight());
 				if (dropBound.overlaps(bucketBound)) {
-					bucket.numDropsCollected++;
+					bucket.setNumDropsCollected(bucket.getNumDropsCollected()+1);
 					dropSound.play();
 					drop.remove();
 				} else if (drop.getY() + 64 < 0) {
 					drop.remove();
 				}
 			}
-		}
-				
-		
+		}						
 	}
 
 	@Override
