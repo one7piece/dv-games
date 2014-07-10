@@ -43,6 +43,8 @@ public class Bucket extends Actor {
 
 	@Override
 	public void act(float delta) {
+		super.act(delta);
+		
 		if (((MyStage)getStage()).isAnimateLaura()) {
 			return;
 		}
