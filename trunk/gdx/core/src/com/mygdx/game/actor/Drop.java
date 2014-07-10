@@ -28,7 +28,9 @@ public class Drop extends Actor {
 	}
 	
 	public void act(float delta) {
-		if (!((MyStage)getStage()).isAnimateLaura()) {
+		super.act(delta);
+		
+		if (!((MyStage)getStage()).isAnimateLaura()) {			
 			// move drop down 200px per seconds
 			moveBy(0, -200*delta);
 		}

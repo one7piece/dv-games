@@ -24,6 +24,8 @@ public class BucketFront extends Actor {
 	}
 
 	public void act(float delta) {
+		super.act(delta);
+		
 		if (((MyStage)getStage()).isAnimateLaura()) {
 			 if (!isVisible()) {
 				MyStage stage = (MyStage)getStage(); 
