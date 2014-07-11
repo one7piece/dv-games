@@ -37,6 +37,7 @@ public class Laura extends Actor {
 	}
 	
 	public void start() {
+		Gdx.app.log("Laura Laugh", "start");
 		MyStage stage = (MyStage)getStage();
 		stage.getBatch().enableBlending();
 		stage.setAnimateLaura(true);
@@ -54,6 +55,10 @@ public class Laura extends Actor {
 		laughId = laughSound.loop(laughVolume);
 		displayTimeSecs = 0f;
 		setVisible(true);
+		// set color alpha to 1 at the start
+		Color c = getColor();
+		setColor(c.r, c.g, c.b, 1f);
+		
 	}
 
 	public void end() {
