@@ -2,11 +2,19 @@ package com.dv.jump.util;
 
 public class Constants {
 	// Visible game world is 5 meters wide
-	public static final float VIEWPORT_WIDTH = 5.0f;
+	public static final float VIEWPORT_WIDTH = 30.0f;
 	// Visible game world is 5 meters tall
-	public static final float VIEWPORT_HEIGHT = 5.0f;
+	public static final float VIEWPORT_HEIGHT = 20.0f;
+
+	public static final float UNIT_SCALE = 1/16f;		// tile 16x16
+	
+	// tiled map file
+	public static final String TILED_MAP_LEVEL1 = "levels/level1.tmx";
+	public static final String[] TILED_MAP_LEVELS = new String[] {TILED_MAP_LEVEL1};
+	
 	// texture atlas file
-	public static final String TEXTURE_ATLAS_OBJECTS = "images/canyonbunny.pack";
+	public static final String[] TEXTURE_ATLAS_OBJECTS = new String[] {"images/monkey.pack"};
+	
 	public static final String TEXTURE_ATLAS_UI = "images/canyonbunny-ui.pack";
 	public static final String TEXTURE_ATLAS_LIBGDX_UI = "images/uiskin.atlas";
 
@@ -18,8 +26,6 @@ public class Constants {
 	// GUI Height
 	public static final float VIEWPORT_GUI_HEIGHT = 480.0f;
 	
-	// Location of image file for level 01
-	public static final String LEVEL_01 = "levels/level-01.png";
 	// Amount of extra lives at level start
 	public static final int LIVES_START = 3;
 	

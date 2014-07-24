@@ -4,11 +4,18 @@ import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
+import com.badlogic.gdx.scenes.scene2d.Actor;
+import com.badlogic.gdx.scenes.scene2d.InputEvent;
+import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.Stack;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
+import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
+import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
+import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener.ChangeEvent;
+import com.dv.jump.game.Assets;
 import com.dv.jump.util.Constants;
 
 public class MenuScreen extends AbstractGameScreen {
@@ -17,6 +24,7 @@ public class MenuScreen extends AbstractGameScreen {
 	private Stage stage;
 	private Skin skinCanyonBunny;
 	private Skin skinLibgdx;
+	private TextButton button;
 
 	public MenuScreen (Game game) {
 		super(game);
@@ -28,12 +36,10 @@ public class MenuScreen extends AbstractGameScreen {
 		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);		
 		stage.act(deltaTime);
 		stage.draw();
-		Table.drawDebug(stage);
-
-		if (Gdx.input.isTouched()) {
-			game.setScreen(new GameScreen(game));
-			dispose();
-		}		
+		Table.drawDebug(stage);		
+		if (Assets.instance.isInitialised() && button != null) {
+			button.setText("PLAY");
+		}
 	}
 
 	@Override
@@ -95,6 +101,23 @@ public class MenuScreen extends AbstractGameScreen {
 		Image imgBunny = new Image(skinCanyonBunny, "bunny");
 		layer.addActor(imgBunny);
 		imgBunny.setPosition(355, 40);
+		
+		button = new TextButton("WAITING", skinLibgdx);
+		button.addListener(new InputListener() {
+			public boolean touchDown (InputEvent event, float x, float y, int pointer, int button) {
+				if (Assets.instance.isInitialised()) {
+					Gdx.app.log("", "Start game...");
+					game.setScreen(new GameScreen(game));
+					dispose();
+				} else {
+					Gdx.app.log("", "Waiting for assets to complete loading");
+				}
+				return false;
+			}
+		});
+		button.setPosition(100, 100);
+		layer.addActor(button);
+		
 		return layer;
 	}
 	
