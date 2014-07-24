@@ -4,33 +4,119 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.assets.AssetDescriptor;
 import com.badlogic.gdx.assets.AssetErrorListener;
 import com.badlogic.gdx.assets.AssetManager;
-import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.assets.loaders.resolvers.InternalFileHandleResolver;
 import com.badlogic.gdx.graphics.Texture.TextureFilter;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas.AtlasRegion;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.maps.tiled.TiledMap;
+import com.badlogic.gdx.maps.tiled.TmxMapLoader;
 import com.badlogic.gdx.utils.Disposable;
 import com.dv.jump.util.Constants;
 
 public class Assets implements Disposable, AssetErrorListener {
 
 	public static final String TAG = Assets.class.getName();
-
 	public static final Assets instance = new Assets();
-
 	private AssetManager assetManager;
-
-	public AssetFonts fonts;
-	public AssetBunny bunny;
-	public AssetRock rock;
-	public AssetGoldCoin goldCoin;
-	public AssetFeather feather;
-	public AssetLevelDecoration levelDecoration;
+	private AssetFonts fonts;
+	private AssetPlayer assetPlayer;
 
 	// singleton: prevent instantiation from other classes
 	private Assets () {
 	}
 
+	public void init (AssetManager assetManager) {
+		synchronized (this) {
+			if (this.assetManager != null) {
+				return;
+			} else {
+				this.assetManager = assetManager;
+			}
+		}
+		
+		fonts = new AssetFonts();
+		
+		// set asset manager error handler
+		assetManager.setErrorListener(this);
+		// load texture atlas
+		for (String name: Constants.TEXTURE_ATLAS_OBJECTS) {
+			Gdx.app.debug(TAG, "loading atlas: " + name);
+			assetManager.load(name, TextureAtlas.class);
+		}
+		
+		// load all map levels
+		assetManager.setLoader(TiledMap.class, new TmxMapLoader(new InternalFileHandleResolver()));
+		
+		for (String name: Constants.TILED_MAP_LEVELS) {
+			Gdx.app.debug(TAG, "loading tiled map: " + name);
+			assetManager.load(name, TiledMap.class);
+		}		
+	}
+
+	@Override
+	public void dispose () {
+		assetManager.dispose();
+	}
+
+	@Override
+	public void error(AssetDescriptor desc, Throwable ex) {
+		Gdx.app.error(TAG, "Couldn't load asset '" + desc.fileName + "'", ex);		
+	}
+
+	public boolean isInitialised() {
+		return assetManager.update();
+	}
+	
+	public TextureRegion getAtlasRegion(String atlasName, String regionName, float scale) {
+		if (!isInitialised()) {
+			throw new RuntimeException("Assets has not finished loading!");
+		}
+		TextureAtlas atlas = assetManager.get(atlasName);
+		AtlasRegion region = atlas.findRegion(regionName);
+		return region;
+	}
+		
+	public TiledMap getTiledMap(String tileMapName) {
+		if (!isInitialised()) {
+			throw new RuntimeException("Assets has not finished loading!");
+		}
+		return assetManager.get(tileMapName);
+	}
+	
+	public AssetFonts getFonts() {
+		return fonts;
+	}
+	
+	public class AssetPlayer {
+		public final AtlasRegion head;
+
+		public AssetPlayer (TextureAtlas atlas) {
+			head = atlas.findRegion("bunny_head");
+			if (head != null) {
+				//Gdx.app.debug("Assets", "head loaded: " + head.getRegionWidth() + "x" + head.getRegionHeight());
+			}
+		}
+	}
+
+	public class AssetGoldCoin {
+		public final AtlasRegion goldCoin;
+
+		public AssetGoldCoin (TextureAtlas atlas) {
+			goldCoin = atlas.findRegion("item_gold_coin");
+		}
+	}
+
+	public class AssetFeather {
+		public final AtlasRegion feather;
+
+		public AssetFeather (TextureAtlas atlas) {
+			feather = atlas.findRegion("item_feather");
+		}
+	}
+	
 	public class AssetFonts {
 		public final BitmapFont defaultSmall;
 		public final BitmapFont defaultNormal;
@@ -51,102 +137,5 @@ public class Assets implements Disposable, AssetErrorListener {
 			defaultBig.getRegion().getTexture().setFilter(TextureFilter.Linear, TextureFilter.Linear);
 		}
 	}
-
-	public class AssetBunny {
-		public final AtlasRegion head;
-
-		public AssetBunny (TextureAtlas atlas) {
-			head = atlas.findRegion("bunny_head");
-		}
-	}
-
-	public class AssetRock {
-		public final AtlasRegion edge;
-		public final AtlasRegion middle;
-
-		public AssetRock (TextureAtlas atlas) {
-			edge = atlas.findRegion("rock_edge");
-			middle = atlas.findRegion("rock_middle");
-		}
-	}
-
-	public class AssetGoldCoin {
-		public final AtlasRegion goldCoin;
-
-		public AssetGoldCoin (TextureAtlas atlas) {
-			goldCoin = atlas.findRegion("item_gold_coin");
-		}
-	}
-
-	public class AssetFeather {
-		public final AtlasRegion feather;
-
-		public AssetFeather (TextureAtlas atlas) {
-			feather = atlas.findRegion("item_feather");
-		}
-	}
-
-	public class AssetLevelDecoration {
-		public final AtlasRegion cloud01;
-		public final AtlasRegion cloud02;
-		public final AtlasRegion cloud03;
-		public final AtlasRegion mountainLeft;
-		public final AtlasRegion mountainRight;
-		public final AtlasRegion waterOverlay;
-
-		public AssetLevelDecoration (TextureAtlas atlas) {
-			cloud01 = atlas.findRegion("cloud01");
-			cloud02 = atlas.findRegion("cloud02");
-			cloud03 = atlas.findRegion("cloud03");
-			mountainLeft = atlas.findRegion("mountain_left");
-			mountainRight = atlas.findRegion("mountain_right");
-			waterOverlay = atlas.findRegion("water_overlay");
-		}
-	}
-
-	public void init (AssetManager assetManager) {
-		this.assetManager = assetManager;
-		// set asset manager error handler
-		assetManager.setErrorListener(this);
-		// load texture atlas
-		assetManager.load(Constants.TEXTURE_ATLAS_OBJECTS, TextureAtlas.class);
-		// start loading assets and wait until finished
-		assetManager.finishLoading();
-
-		for (String a : assetManager.getAssetNames()) {
-			Gdx.app.debug(TAG, "asset: " + a);
-		}
-
-		TextureAtlas atlas = assetManager.get(Constants.TEXTURE_ATLAS_OBJECTS);
-
-		// enable texture filtering for pixel smoothing
-		for (Texture t : atlas.getTextures()) {
-			t.setFilter(TextureFilter.Linear, TextureFilter.Linear);
-		}
-
-		// create game resource objects
-		fonts = new AssetFonts();
-		bunny = new AssetBunny(atlas);
-		rock = new AssetRock(atlas);
-		goldCoin = new AssetGoldCoin(atlas);
-		feather = new AssetFeather(atlas);
-		levelDecoration = new AssetLevelDecoration(atlas);
-		
-		Gdx.app.debug(TAG, "# of assets loaded: " + assetManager.getAssetNames().size);
-	}
-
-	@Override
-	public void dispose () {
-		assetManager.dispose();
-		fonts.defaultSmall.dispose();
-		fonts.defaultNormal.dispose();
-		fonts.defaultBig.dispose();
-	}
-
-	@Override
-	public void error(AssetDescriptor desc, Throwable ex) {
-		Gdx.app.error(TAG, "Couldn't load asset '" + desc.fileName + "'", ex);		
-	}
-
-
+	
 }

@@ -4,7 +4,7 @@ import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
-import com.dv.jump.game.objects.AbstractGameObject;
+import com.dv.jump.game.objects.GameObject;
 
 /**
  * @author dvan Helper class to store the current position and zoom value for
@@ -17,7 +17,7 @@ public class CameraHelper {
 	private final float MAX_ZOOM_OUT = 10.0f;
 	private Vector2 position;
 	private float zoom;
-	private AbstractGameObject target;
+	private GameObject target;
 
 	public CameraHelper() {
 		position = new Vector2();
@@ -33,8 +33,8 @@ public class CameraHelper {
 		if (!hasTarget()) {
 			return;
 		}
-		position.x = target.position.x + target.origin.x;
-		position.y = target.position.y + target.origin.y;
+		position.x = target.getPosition().x;
+		position.y = target.getPosition().y;
 	}
 
 	public void setPosition(float x, float y) {
@@ -57,11 +57,11 @@ public class CameraHelper {
 		return zoom;
 	}
 
-	public void setTarget(AbstractGameObject target) {
+	public void setTarget(GameObject target) {
 		this.target = target;
 	}
 
-	public AbstractGameObject getTarget() {
+	public GameObject getTarget() {
 		return target;
 	}
 
@@ -69,7 +69,7 @@ public class CameraHelper {
 		return target != null;
 	}
 
-	public boolean hasTarget(AbstractGameObject target) {
+	public boolean hasTarget(GameObject target) {
 		return hasTarget() && this.target.equals(target);
 	}
 
