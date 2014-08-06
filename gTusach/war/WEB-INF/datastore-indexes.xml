@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<datastore-indexes autoGenerate="true">
+	<datastore-index kind="Book" ancestor="true" source="manual">
+		<property name="lastUpdatedTime" direction="desc" />
+	</datastore-index>
+   <datastore-index kind="Chapter" ancestor="true" source="manual">
+       <property name="chapterNo" direction="asc"/>
+   </datastore-index>
+   <datastore-index kind="Section" ancestor="true" source="manual">
+       <property name="sectionNo" direction="asc"/>
+   </datastore-index>	   
+   <datastore-index kind="ChapterAttachment" ancestor="true" source="manual">
+       <property name="sectionNo" direction="asc"/>
+   </datastore-index>
+</datastore-indexes>

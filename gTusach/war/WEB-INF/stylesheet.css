@@ -1,0 +1,48 @@
+body {
+    border-width: 0;
+    display: block;
+    font-family: "Verdana", serif;
+    font-size: 1em;
+    line-height: 1.2;
+    margin-bottom: 0;
+    margin-left: 1pt;
+    margin-right: 1pt;
+    margin-top: 0;
+    padding-bottom: 0;
+    padding-left: 0;
+    padding-right: 0;
+    padding-top: 0
+    }
+						
+@page {
+    margin-bottom: 1pt;
+    margin-top: 1pt
+    }
+@font-face {
+    src: url(verdana.ttf);
+    panose-1: 2 2 6 3 5 4 5 2 3 4;
+    font-family: "Verdana"
+    }
+@font-face {
+    src: url(verdanai.ttf);
+    panose-1: 2 2 5 3 5 4 5 9 3 4;
+    font-family: "Verdana";
+    font-style: italic
+    }
+@font-face {
+    src: url(verdanab.ttf);
+    panose-1: 2 2 8 3 7 5 5 2 3 4;
+    font-family: "Verdana";
+    font-weight: bold
+    }
+@font-face {
+    src: url(verdanaz.ttf);
+    panose-1: 2 2 7 3 6 5 5 9 3 4;
+    font-family: "Verdana";
+    font-weight: bold;
+    font-style: italic
+    }		
+
+.chapterImage {
+	overflow: auto
+}		

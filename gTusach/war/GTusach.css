@@ -1,0 +1,51 @@
+/** Add css rules here for your application. */
+
+
+/** Example rules used by the template application (remove for your app) */
+h1 {
+  font-size: 2em;
+  font-weight: bold;
+  color: #777777;
+  margin: 40px 0px 70px;
+  text-align: center;
+}
+
+body {
+  padding: 10px;
+}
+
+/* stock list header row */
+.bookListHeader {
+  background-color: #2062B8;
+  color: white;
+  font-style: italic;
+}
+
+/* stock list flex table */
+.bookList {
+  border: 1px solid silver;
+  padding: 2px;
+  margin-bottom:6px;
+}
+
+/* stock list Price and Change fields */
+.bookListNumericColumn {
+  text-align: right;
+  width:8em;
+}
+.borderRound {
+	border: 1px skyblue;
+	border-radius: 5px;
+}
+.gwt-Label-Error {
+	color: Red;
+}
+.margin-left {
+	margin-left: 10px;
+}
+.margin-top {
+	margin-top: 10px;
+}
+floatLeft {
+	float: left;
+}
