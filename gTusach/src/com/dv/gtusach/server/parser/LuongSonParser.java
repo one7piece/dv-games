@@ -8,6 +8,7 @@ import org.jsoup.select.Elements;
 
 import com.dv.gtusach.server.common.BookParser;
 import com.dv.gtusach.server.common.ChapterHtml;
+import com.dv.gtusach.shared.BadDataException;
 
 public class LuongSonParser extends BookParser {
 
@@ -75,10 +76,13 @@ public class LuongSonParser extends BookParser {
 
   
   @Override
-  public ChapterHtml extractChapterHtml(String targetStr, String requestStr, String book) {
+  public ChapterHtml extractChapterHtml(String targetStr, String requestStr, String book) throws BadDataException {
     // extract data from <body> element
     Document doc = Jsoup.parse(book);
     Elements list = doc.select("div.maincontent");
+    if (list == null || list.size() == 0) {
+    	throw new BadDataException("Cannot find chapter div: maincontent in html"); 
+    }
     String textStr = "";
     for (Element elm: list) {
       String chapterText = "";
@@ -92,13 +96,16 @@ public class LuongSonParser extends BookParser {
       }
     }
     
-    //String result = null;
+    ChapterHtml chapterHtml = null;
     if (textStr != null) {
-      ChapterHtml chapterHtml = new ChapterHtml();
+      chapterHtml = new ChapterHtml();
       int index = bookTemplate.indexOf("</body>");
       chapterHtml.setHtml(bookTemplate.substring(0, index-1) + textStr + "</body></html>");
     }
-    return null;
+    if (!super.isValidChapterHtml(chapterHtml)) {
+    	throw new BadDataException("No chapter content found in html");
+    }
+    return chapterHtml;
   }  
 
   @Override

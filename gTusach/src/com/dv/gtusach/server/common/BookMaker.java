@@ -17,6 +17,7 @@ import com.dv.gtusach.server.parser.LuongSonParser;
 import com.dv.gtusach.server.parser.TangThuVienParser;
 import com.dv.gtusach.server.parser.TruyenHixx2Parser;
 import com.dv.gtusach.server.parser.TruyenHixxParser;
+import com.dv.gtusach.server.parser.TruyenyyParser;
 import com.dv.gtusach.server.parser.TungHoanhParser;
 import com.dv.gtusach.server.parser.VietMessengerParser;
 import com.dv.gtusach.shared.BadDataException;
@@ -28,7 +29,7 @@ public abstract class BookMaker {
   private static Logger log = Logger.getLogger(BookMaker.class.getCanonicalName());
   private static BookParser[] parsers = { new TungHoanhParser(), new LuongSonParser(), 
     new TruyenHixxParser(), new TruyenHixx2Parser(), new VietMessengerParser(), 
-    new TangThuVienParser() };
+    new TangThuVienParser(), new TruyenyyParser() };
   private String templateHtml = null;
 
   public BookMaker() {
@@ -166,11 +167,12 @@ public abstract class BookMaker {
                 + ", request=" + request);
           }
           
-          ChapterHtml chapterHtml = parser.extractChapterHtml(target, request, rawChapterHtml);        
-          if (chapterHtml == null || !parser.isValidChapterHtml(chapterHtml)) {
-            log.warning("Invalid chapter html loaded from target=" + target 
-                + ", request=" + request + "\n" + (rawChapterHtml));
-            throw new BadDataException("Invalid chapter html loaded from target=" + target + ", request=" + request);
+          ChapterHtml chapterHtml = null;
+          try {
+            chapterHtml = parser.extractChapterHtml(target, request, rawChapterHtml);        
+          } catch (BadDataException ex) {
+            log.warning("Error extracting chapter content from: " + request + " - " + ex.getMessage());
+            throw new BadDataException("Error extracting chapter content from: " + request + " - " + ex.getMessage());
           }
           
           String pageUrl = parser.getUrl(target, request);        
