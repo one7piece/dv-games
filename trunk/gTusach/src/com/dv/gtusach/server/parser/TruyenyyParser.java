@@ -5,11 +5,13 @@ import java.util.logging.Level;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
+import org.jsoup.nodes.Node;
+import org.jsoup.nodes.TextNode;
 import org.jsoup.select.Elements;
 
-import com.dv.gtusach.server.common.AttachmentData;
 import com.dv.gtusach.server.common.BookParser;
 import com.dv.gtusach.server.common.ChapterHtml;
+import com.dv.gtusach.shared.BadDataException;
 
 public class TruyenyyParser extends BookParser {
 
@@ -28,17 +30,21 @@ public class TruyenyyParser extends BookParser {
   public String getNextPageUrl(String target, String currentPageURL, String rawChapterHtml) {  
     String result = null;
     Document doc = Jsoup.parse(rawChapterHtml);
-    Element body = doc.getElementsByTag("body").first();    
-    Elements list = body.getElementsByTag("a");
-    for (int i=0; i<list.size(); i++) {
-      Element elm = list.get(i);
-      String text = elm.text().trim();
-      if (text.equalsIgnoreCase("Sau")) {
-        //log.info("found a: " + elm.html());
-        result = elm.attr("href");
-        break;
-      }
+    Elements list = doc.select("div.mobi-chuyentrang");
+    if (list.size() > 0) {    	    
+      Element elm = list.get(0);
+      Elements refs = elm.select("a[href]");
+      for (Element ref: refs) {
+        //log.info("getNextPageUrl() - found href: " + ref.attr("href") + ", text:" +  ref.text());
+      	if (ref.text().trim().toLowerCase().equals("sau")) {
+        	result = ref.attr("href");
+      		break;
+      	}
+      }      
+    } else {
+    	log.warning("getNextPageUrl() - Could not find next page marker: div.mobi-chuyentrang");
     }
+    
     log.info("found next page url: " + result + ", current page URL: " + currentPageURL);
     if (result != null && currentPageURL != null && result.equals(currentPageURL)) {
       log.info("Bad html causing infinite loop!!!\n");
@@ -49,72 +55,68 @@ public class TruyenyyParser extends BookParser {
 
   
   @Override
-  public ChapterHtml extractChapterHtml(String target, String request, String rawChapterHtml) {
-    
-    String bookText = rawChapterHtml;
-    if (request.indexOf("/chapter/") == -1) {
-      String marker = "FetchChapter(\"";    
-      int index = rawChapterHtml.indexOf(marker);    
-      if (index != -1) {      
-        int index1 = index + marker.length();
-        int index2 = rawChapterHtml.indexOf("\"", index1);
-        String chapterId = rawChapterHtml.substring(index1, index2);      
-        log.info("Found chapter id: " + chapterId);
-        if (!chapterId.toLowerCase().endsWith(".html")) {
-          chapterId += ".html";
-        }
-        bookText = executeRequest(target, "/chapter/" + chapterId);
-        if (bookText == null || bookText.trim().length() == 0) {
-          throw new RuntimeException("Failed to load request: " + "/chapter/" + chapterId);
-        }        
-      } else {
-        log.info("Cannot find FetchChapter marker in:\n" + rawChapterHtml);
-        return null;
-      }
+  public ChapterHtml extractChapterHtml(String target, String request, String rawChapterHtml) throws BadDataException {
+    // extract data from <body> element
+    Document doc = Jsoup.parse(rawChapterHtml);
+    Elements list = doc.select("div#id_noidung_chuong");
+    if (list == null || list.size() == 0) {
+    	throw new BadDataException("Cannot find chapter marker: div#id_noidung_chuong");
+    }
+    StringBuffer buffer = new StringBuffer(5000);
+    for (Element elm: list) {   
+    	extractNodeText(elm, buffer);
+    	//log.info("found chapter text: [" + buffer.toString() + "]");
+    }
+    ChapterHtml chapterHtml = null;
+    if (buffer.length() > 0) {
+      chapterHtml = new ChapterHtml();
+      int index = bookTemplate.indexOf("</body>");
+      chapterHtml.setHtml(bookTemplate.substring(0, index-1) + buffer.toString() + "</body></html>");           
     }
     
-    // get the html between the body tags
-    int index = bookText.indexOf("<body>");
-    int index2 = bookText.indexOf("</body>");
-    if (index != -1 && index2 != -1) {
-      bookText = bookText.substring(index+"<body>".length(), index2);
+    if (!isValidChapterHtml(chapterHtml)) {
+    	throw new BadDataException("No chapter content found in html");
     }
-    
-    index = bookTemplate.indexOf("</body>");
-    String formatChapterHtml = bookTemplate.substring(0, index-1) + bookText + "</body></html>";
-    ChapterHtml chapterHtml = new ChapterHtml();
-    
-    // check for chapter with image
-    if (bookText.length() < 2000) {
-      Document doc = Jsoup.parse(formatChapterHtml);
-      Element body = doc.getElementsByTag("body").first();    
-      Elements list = body.getElementsByTag("img");
-      for (int i=0; i<list.size(); i++) {
-        Element elm = list.get(i);
-        String src = elm.attr("src");
-        if (src != null && src.indexOf("/chapter/") != -1) {
-          byte[] image = loadResource(src);
-          if (image != null && image.length > 0) {
-            log.info("Found chapter image: " + src);
-            String href = src.substring(src.indexOf("/chapter/") + "/chapter/".length());
-            chapterHtml.getAttachments().add(new AttachmentData(href, image));
-            formatChapterHtml = formatChapterHtml.replace(src, href);
-          } else {
-            log.log(Level.WARNING, "Failed to load image resource: " + src);
-          }
-        }
-      }
-    } 
-    
-    chapterHtml.setHtml(formatChapterHtml);
-    //log.info("Chapter data:\n----------------------\n" + result + "\n----------------\n");
-    return chapterHtml;    
+                   
+    //log.info("Chapter data:\n----------------------\n" + chapterHtml + "\n----------------\n");
+    return chapterHtml;
   }
-
+  
   @Override
   public String getChapterTitle(String rawHtml, String formatHtml) {
-    // TODO Auto-generated method stub
-    return super.getChapterTitle(rawHtml, formatHtml);
+    String result = "";
+    try {
+    	int index = rawHtml.indexOf("id_noidung_chuong");
+    	if (index > 300) {
+        String html = rawHtml.substring(index-300, index);    		
+        for (String prefix: all_PREFIXES) {
+          String regex = prefix + "\\s*\\d+";
+          String title = findChapterTitle(html, regex);
+          if (title.length() > 0) {
+            result = title;
+            break;
+          }
+        }
+    	}
+    } catch (Exception ex) {
+      log.log(Level.WARNING, "Error getting chapter title.", ex);
+    }
+    log.log(Level.INFO, "Found chapter title: [" + result + "]");
+    return result;
   }
-
+  
+  @Override
+  protected void extractNodeText(Node node, StringBuffer buffer) {
+  	if (node instanceof TextNode) {
+  		String text = ((TextNode)node).getWholeText();
+  		if (text.toLowerCase().indexOf("ads by google") == -1) {
+    		buffer.append(text + "<br/>");
+  		}
+  	} else {
+  		for (Node child: node.childNodes()) {
+  			extractNodeText(child, buffer);
+  		}
+  	}
+  }
+  
 }

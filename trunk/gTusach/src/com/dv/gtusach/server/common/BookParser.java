@@ -12,6 +12,11 @@ import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.jsoup.nodes.Node;
+import org.jsoup.nodes.TextNode;
+
+import com.dv.gtusach.shared.BadDataException;
+
 public abstract class BookParser {
   protected static final Logger log = Logger.getLogger(BookParser.class.getCanonicalName());
   
@@ -146,7 +151,7 @@ public abstract class BookParser {
   
   public abstract String getDomainName();
   
-  public abstract ChapterHtml extractChapterHtml(String target, String request, String rawChapterHtml);
+  public abstract ChapterHtml extractChapterHtml(String target, String request, String rawChapterHtml) throws BadDataException;
   
   public abstract String getNextPageUrl(String target, String currentPageURL, String rawChapterHtml);
   
@@ -198,6 +203,16 @@ public abstract class BookParser {
         && (chapterHtml.getHtml().length() > 300 || chapterHtml.getAttachments().size() > 0));
   }
     
+  protected void extractNodeText(Node node, StringBuffer buffer) {
+  	if (node instanceof TextNode) {
+  		buffer.append(((TextNode)node).getWholeText() + "<br/>");
+  	} else {
+  		for (Node child: node.childNodes()) {
+  			extractNodeText(child, buffer);
+  		}
+  	}
+  }
+  
   public Proxy getProxy() {
     Proxy proxy = null;
     try {

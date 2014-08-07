@@ -11,6 +11,7 @@ import org.jsoup.select.Elements;
 import com.dv.gtusach.server.common.AttachmentData;
 import com.dv.gtusach.server.common.BookParser;
 import com.dv.gtusach.server.common.ChapterHtml;
+import com.dv.gtusach.shared.BadDataException;
 
 public class TungHoanhParser extends BookParser {
 
@@ -49,7 +50,7 @@ public class TungHoanhParser extends BookParser {
 
   
   @Override
-  public ChapterHtml extractChapterHtml(String target, String request, String rawChapterHtml) {
+  public ChapterHtml extractChapterHtml(String target, String request, String rawChapterHtml) throws BadDataException {
     
     String bookText = rawChapterHtml;
     if (request.indexOf("/chapter/") == -1) {
@@ -125,6 +126,11 @@ public class TungHoanhParser extends BookParser {
     } 
     
     chapterHtml.setHtml(formatChapterHtml);
+    
+    if (!isValidChapterHtml(chapterHtml)) {
+    	throw new BadDataException("No chapter content found in html");
+    }
+    
     //log.info("Chapter data:\n----------------------\n" + result + "\n----------------\n");
     return chapterHtml;    
   }

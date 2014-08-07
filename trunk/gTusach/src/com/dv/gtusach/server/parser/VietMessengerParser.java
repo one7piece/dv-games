@@ -7,6 +7,7 @@ import org.jsoup.select.Elements;
 
 import com.dv.gtusach.server.common.BookParser;
 import com.dv.gtusach.server.common.ChapterHtml;
+import com.dv.gtusach.shared.BadDataException;
 
 public class VietMessengerParser extends BookParser {
 
@@ -50,7 +51,7 @@ public class VietMessengerParser extends BookParser {
 
   
   @Override
-  public ChapterHtml extractChapterHtml(String targetStr, String requestStr, String book) {
+  public ChapterHtml extractChapterHtml(String targetStr, String requestStr, String book) throws BadDataException {
     // extract data from <body> element
     Document doc = Jsoup.parse(book);
     Element body = doc.getElementsByTag("body").first();
@@ -75,6 +76,10 @@ public class VietMessengerParser extends BookParser {
       chapterHtml = new ChapterHtml();
       int index = bookTemplate.indexOf("</body>");
       chapterHtml.setHtml(bookTemplate.substring(0, index-1) + textStr + "</body></html>");           
+    }
+    
+    if (!isValidChapterHtml(chapterHtml)) {
+    	throw new BadDataException("No chapter content found in html");
     }
     
     return chapterHtml;

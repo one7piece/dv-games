@@ -7,6 +7,7 @@ import org.jsoup.select.Elements;
 
 import com.dv.gtusach.server.common.BookParser;
 import com.dv.gtusach.server.common.ChapterHtml;
+import com.dv.gtusach.shared.BadDataException;
 
 public class TangThuVienParser extends BookParser {
 	private String chapterTitle;
@@ -50,7 +51,7 @@ public class TangThuVienParser extends BookParser {
 
   
   @Override
-  public ChapterHtml extractChapterHtml(String targetStr, String requestStr, String html) {
+  public ChapterHtml extractChapterHtml(String targetStr, String requestStr, String html) throws BadDataException {
   	this.chapterTitle = "";
   	this.rawChapterHtml = html;
   	String title1 = "";
@@ -89,7 +90,7 @@ public class TangThuVienParser extends BookParser {
   		} else {
   			continue;
   		}
-  	}
+  	} 
   	this.chapterTitle = title1 + "/" + title2;
   	if (this.chapterTitle.length() > 64) {
   		this.chapterTitle = chapterTitle.substring(0, 64);
@@ -100,6 +101,10 @@ public class TangThuVienParser extends BookParser {
       chapterHtml = new ChapterHtml();
       index = bookTemplate.indexOf("</body>");
       chapterHtml.setHtml(bookTemplate.substring(0, index-1) + textStr + "</body></html>");           
+    }
+    
+    if (!isValidChapterHtml(chapterHtml)) {
+    	throw new BadDataException("No chapter content found in html");
     }
     
     return chapterHtml;

@@ -73,5 +73,9 @@ public class ChapterHtml {
   
   public void setHtml(String html) {
     this.html = html;
-  }    
+  }      
+  
+  public String toString() {
+  	return "ID:" + getId() + ", chapter: " + chapterNo + " - " + chapterTitle;
+  }
 }
