@@ -12,16 +12,23 @@
   <!-- Inherit the default GWT style sheet.  You can change       -->
   <!-- the theme of your GWT application by uncommenting          -->
   <!-- any one of the following lines.                            -->
-  <inherits name='com.google.gwt.user.theme.clean.Clean'/>
+<!--   <inherits name='com.google.gwt.user.theme.clean.Clean'/>		-->
 <!--   <inherits name='com.google.gwt.user.theme.standard.Standard'/> -->
-<!--   <inherits name='com.google.gwt.user.theme.chrome.Chrome'/> -->
-  <!-- <inherits name='com.google.gwt.user.theme.dark.Dark'/>     -->
+			 <inherits name='com.google.gwt.user.theme.chrome.Chrome'/>
+<!--   <inherits name='com.google.gwt.user.theme.dark.Dark'/>			-->  
 
   <!-- Other module inherits                                      -->
   <inherits name='com.google.gwt.uibinder.UiBinder'/>
+  <inherits name="com.google.gwt.activity.Activity"/>
+  <inherits name="com.google.gwt.place.Place"/>
 
   <!-- Specify the app entry point class.                         -->
   <entry-point class='com.dv.gtusach.client.GTusach'/>  
+
+  <!-- Use ClientFactoryImpl by default -->
+  <replace-with class="com.dv.gtusach.client.ClientFactoryImpl">
+    <when-type-is class="com.dv.gtusach.client.ClientFactory"/>
+  </replace-with>
 
   <!-- Specify the paths for translatable code                    -->
   <source path='client'/>
