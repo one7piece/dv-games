@@ -5,9 +5,8 @@
 	.important {
 		font-weight: bold;
 	}
-	.borderRound {
-		margin: 5px 10px;
-		padding-bottom: 10px;
+	.borderPanel {
+		margin: 5px 5px 5px 5px;
 		border: 1px solid skyblue;
 	}
 	.margin-top {
@@ -37,7 +36,7 @@
 	<g:HTMLPanel width="100%" height="100%" styleName="{style.background}">
 		<g:DockLayoutPanel height="100%" width="100%">
 			<g:north size="220">
-				<g:DockLayoutPanel unit="PX" styleName="{style.borderRound}">
+				<g:DockLayoutPanel unit="PX" styleName="{style.borderPanel}">
 					<g:north size="25">
 						<g:FlowPanel styleName="{style.margin-left}">
 							<g:Label text="Create New Book" styleName="{style.title}"/>
@@ -57,15 +56,15 @@
 			
 			<g:center>
 				<g:DockLayoutPanel unit="PX">
-					<g:north size="30">
+					<g:north size="30.0">
 						<g:FlowPanel styleName="{style.margin-left}">
 							<g:Label ui:field="bookListHeaderLabel" text="Not Loaded"/>
 						</g:FlowPanel>
 					</g:north>
 				
 					<g:center>
-						<g:ScrollPanel>
-							<g:FlexTable ui:field="bookListTable" width="100%" styleName="{style.borderRound}"/>
+						<g:ScrollPanel styleName="{style.borderPanel}">
+							<g:FlexTable ui:field="bookListTable" width="100%"/>
 						</g:ScrollPanel>
 					</g:center>
 				</g:DockLayoutPanel>

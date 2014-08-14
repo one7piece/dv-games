@@ -1,14 +1,65 @@
 <!DOCTYPE ui:UiBinder SYSTEM "http://dl.google.com/gwt/DTD/xhtml.ent">
 <ui:UiBinder xmlns:ui="urn:ui:com.google.gwt.uibinder"
-			 xmlns:g="urn:import:com.google.gwt.user.client.ui">
+	xmlns:g="urn:import:com.google.gwt.user.client.ui">
 	<ui:style>
-		.important {
-			font-weight: bold;
-		}
+	.important {
+		font-weight: bold;
+	}
+	
+	.background {
+		background-repeat: repeat;
+		background-image: url(images/background.jpg);
+	}
+	
+	.title {
+		font-size: 2em;
+		font-weight: bold;
+		color: blue;
+		margin: 50px 0px;
+	}
+	
+	.center {
+		margin: auto;
+	}
+	
+	.button {
+		margin-left: 10px;
+		padding-left: 5px;
+	}
+	
 	</ui:style>
-	<g:HTMLPanel>
-		Click to login,
-		<span class="{style.important}" ui:field="nameSpan" />
-		<g:Anchor ui:field="mainViewLink" text="Enter Library"></g:Anchor>
+	<g:HTMLPanel styleName="{style.background}" width="100%"
+		height="100%">
+		<g:DockLayoutPanel unit="PX" width="100%" height="100%">
+			<g:north size="150">
+				<g:HorizontalPanel width="100%"
+					horizontalAlignment="ALIGN_LEFT" height="150PX" verticalAlignment="ALIGN_TOP">
+					<g:Image url="images/logo.png" width="150px" height="150px" />
+					<g:Label text="Tu Sach Kiem Hiep" wordWrap="false"
+						styleName="{style.title}" horizontalAlignment="ALIGN_LEFT" height="150px"
+						width="150px" />
+					<g:SimplePanel height="150px" width="150px" />
+				</g:HorizontalPanel>
+			</g:north>
+			<g:center>
+				<g:VerticalPanel width="300px" height="" styleName="{style.center}" spacing="10">
+					<g:Label wordWrap="false" ui:field="headerLabel" addStyleNames="gwt-Label-Error" horizontalAlignment="ALIGN_CENTER"/>
+					<g:HorizontalPanel verticalAlignment="ALIGN_MIDDLE" styleName="{style.center}">
+						<g:Label text="User Name" wordWrap="false" width="75px"
+							horizontalAlignment="ALIGN_RIGHT" />
+						<g:TextBox ui:field="userName" />
+					</g:HorizontalPanel>
+					<g:HorizontalPanel verticalAlignment="ALIGN_MIDDLE" styleName="{style.center}">
+						<g:Label text="Password" wordWrap="false" width="75px"
+							horizontalAlignment="ALIGN_RIGHT" />
+						<g:PasswordTextBox ui:field="password" />
+					</g:HorizontalPanel>
+					<g:FlowPanel styleName="{style.center}" width="142px">
+						<g:Button text="Sign in" styleName="{style.button}" ui:field="loginButton" />
+						<g:Button text="Cancel" styleName="{style.button}" ui:field="cancelButton" ></g:Button>
+					</g:FlowPanel>
+				</g:VerticalPanel>
+			</g:center>
+		</g:DockLayoutPanel>
 	</g:HTMLPanel>
 </ui:UiBinder>

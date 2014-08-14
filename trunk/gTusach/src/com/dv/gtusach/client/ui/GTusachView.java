@@ -1,7 +1,6 @@
 package com.dv.gtusach.client.ui;
 
-import java.util.List;
-
+import com.dv.gtusach.client.event.AuthenticationEvent;
 import com.dv.gtusach.shared.BadDataException;
 import com.dv.gtusach.shared.Book;
 import com.google.gwt.place.shared.Place;
@@ -17,11 +16,11 @@ public interface GTusachView extends IsWidget {
 		Download, Delete, Resume, Abort
 	};
 	
-	
 	void setErrorMessage(String error);
 	void setHeaderMessage(String header);
 	void setBooks(Book[] books, boolean reload);	
 	void setPresenter(Presenter listener);
+	void onAuthenticationChanged(AuthenticationEvent event);
 	
 	public interface Presenter {
 		void goTo(Place place);
@@ -30,5 +29,10 @@ public interface GTusachView extends IsWidget {
 		void resume(String bookId);
 		void abort(String bookId);
 		void delete(String bookId);
+		boolean canDownload(Book book);
+		boolean canAbort(Book book);
+		boolean canResume(Book book);
+		boolean canDelete(Book book);
+		boolean canCreate();
 	}
 }

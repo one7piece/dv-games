@@ -19,6 +19,7 @@ import com.dv.gtusach.server.common.Persistence;
 import com.dv.gtusach.server.common.SectionData;
 import com.dv.gtusach.shared.Book;
 import com.dv.gtusach.shared.Book.BookStatus;
+import com.dv.gtusach.shared.User;
 import com.google.appengine.api.datastore.Blob;
 import com.google.appengine.api.datastore.DatastoreService;
 import com.google.appengine.api.datastore.DatastoreServiceFactory;
@@ -29,10 +30,14 @@ import com.google.appengine.api.datastore.Key;
 import com.google.appengine.api.datastore.KeyFactory;
 import com.google.appengine.api.datastore.PropertyProjection;
 import com.google.appengine.api.datastore.Query;
+import com.google.appengine.api.datastore.Query.Filter;
+import com.google.appengine.api.datastore.Query.FilterOperator;
+import com.google.appengine.api.datastore.Query.FilterPredicate;
 
 public class GAEPersistence extends Persistence implements Serializable {
-  public static final String BOOK_KIND = "Book";
+  public static final String USER_KIND = "User";
   public static final String LIBRARY_KIND = "Libary";
+  public static final String BOOK_KIND = "Book";
   public static final String LIBRARY_NAME = "dv";
   public static final String SECTION_KIND = "Section";
   public static final String CHAPTER_KIND = "Chapter";
@@ -62,6 +67,52 @@ public class GAEPersistence extends Persistence implements Serializable {
     return (s != null ? s : "");
   }
 
+	public void saveUser(User user) {
+    log.info("saving user: " + user.getName());
+    try {
+      Entity entity = null;
+    	User oldUser = getUser(user.getName());
+      if (oldUser == null) {
+        entity = new Entity(USER_KIND, getLibraryKey());
+      } else {
+        Key key = KeyFactory.stringToKey((String) oldUser.getId());
+        entity = new Entity(key);
+      }
+    	    	
+      entity.setProperty("name", user.getName());
+      entity.setProperty("role", user.getRole());
+      entity.setProperty("password", user.getPassword());
+      entity.setProperty("lastLoginTime", user.getLastLoginTime());
+
+      DatastoreService datastore = DatastoreServiceFactory.getDatastoreService();
+      Key key = datastore.put(entity);
+      log.log(Level.INFO, "Saved user key: " + key);
+      user.setId(KeyFactory.keyToString(key));
+            
+    } catch (Exception ex) {
+      log.log(Level.WARNING, "Error saving user: " + user, ex);
+      throw new RuntimeException("Error saving user: " + ex.getMessage());
+    }
+	}
+		    
+	public User getUser(String name) {
+		Filter nameFilter = new FilterPredicate("name", FilterOperator.EQUAL, name);
+    Query query = new Query(USER_KIND, getLibraryKey()).setFilter(nameFilter);
+    DatastoreService datastore = DatastoreServiceFactory.getDatastoreService();
+    List<Entity> list = datastore.prepare(query).asList(FetchOptions.Builder.withLimit(10));
+    if (list.size() > 0) {
+    	Entity entity = list.get(0);
+    	User user = new User();
+    	user.setId(KeyFactory.keyToString(entity.getKey()));
+      user.setName((String) entity.getProperty("name"));
+      user.setRole((String) entity.getProperty("role"));
+      user.setPassword((String) entity.getProperty("password"));
+      user.setLastLoginTime((Date)entity.getProperty("lastLoginTime"));    	
+    	return user;
+    }
+    return null;
+	}
+	
   public Date getLastUpdateTime() {
   	return libraryTimestamp;
   }

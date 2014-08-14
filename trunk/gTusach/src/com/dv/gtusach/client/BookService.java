@@ -11,9 +11,11 @@ public interface BookService extends RemoteService {
 	long getLastUpdateTime(); 
 	Book[] getBooks(String[] bookIds);
 	Book getBook(String bookId);
-	void createBook(Book newBook) throws BadDataException;
-	byte[] downloadBook(String bookId);
-	void deleteBook(String bookId) throws BadDataException;
-	void resumeBook(String bookId) throws BadDataException;
-	void abortBook(String bookId) throws BadDataException;
+	byte[] downloadBook(long sessionId, String bookId) throws BadDataException;	
+	void createBook(long sessionId, Book newBook) throws BadDataException;
+	void deleteBook(long sessionId, String bookId) throws BadDataException;
+	void resumeBook(long sessionId, String bookId) throws BadDataException;
+	void abortBook(long sessionId, String bookId) throws BadDataException;
+	long login(String userName, String password);
+	void logout(long sessionId);
 }

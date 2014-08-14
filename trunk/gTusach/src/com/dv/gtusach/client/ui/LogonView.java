@@ -9,11 +9,17 @@ import com.google.gwt.user.client.ui.IsWidget;
  * 
  */
 public interface LogonView extends IsWidget {
-	void setName(String helloName);
+	void setUserName(String userName);
+	
+	void setPassword(String password);
 
 	void setPresenter(Presenter listener);
 
+	void setErrorMessage(String error);
+	
 	public interface Presenter {
 		void goTo(Place place);
+		void logon(String userName, String password);
+		void logout();
 	}
 }
