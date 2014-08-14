@@ -39,7 +39,7 @@ public class BookServiceSimulatorImpl extends RemoteServiceServlet implements Bo
 	}
 
 	@Override
-	public void createBook(Book newBook) throws BadDataException {
+	public void createBook(long sessionId, Book newBook) throws BadDataException {
 		// TODO Auto-generated method stub		
 	}
 
@@ -49,17 +49,25 @@ public class BookServiceSimulatorImpl extends RemoteServiceServlet implements Bo
 		return null;
 	}
 
-	public byte[] downloadBook(String bookId) {
+	public byte[] downloadBook(long sessionId, String bookId) {
 		return null;
 	}
 	
-	public void deleteBook(String bookId) throws BadDataException {
+	public void deleteBook(long sessionId, String bookId) throws BadDataException {
 	}
 	
-	public void resumeBook(String bookId) throws BadDataException {
+	public void resumeBook(long sessionId, String bookId) throws BadDataException {
 	}
 	
-	public void abortBook(String bookId) throws BadDataException {
+	public void abortBook(long sessionId, String bookId) throws BadDataException {
 	}
 	
+	public long login(String userName, String password) {
+		long sessionId = -1;
+		return sessionId;
+	}
+
+	public void logout(long sessionId) {
+		
+	}	
 }

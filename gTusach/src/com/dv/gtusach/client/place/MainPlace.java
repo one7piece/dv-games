@@ -24,6 +24,5 @@ public class MainPlace extends Place {
 		public MainPlace getPlace(String token) {
 			return new MainPlace(token);
 		}
-
 	}
 }

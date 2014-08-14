@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import com.dv.gtusach.client.event.AuthenticationEvent;
 import com.dv.gtusach.shared.BadDataException;
 import com.dv.gtusach.shared.Book;
 import com.dv.gtusach.shared.Book.BookStatus;
@@ -98,8 +99,6 @@ public class GTusachViewImpl extends Composite implements GTusachView,
 		createButton.addClickHandler(this);		
 	}
 
-
-
 	private void updateBook(int row, Book book) {
 		HorizontalPanel panel = new HorizontalPanel();
 		panel.setSpacing(5);
@@ -107,15 +106,13 @@ public class GTusachViewImpl extends Composite implements GTusachView,
 
 		boolean isWorking = (book.getStatus() == BookStatus.WORKING);
 
-		panel.add(createImageWidget(row, book.getId(), ActionEnum.Download,
-				!isWorking));
-		panel.add(createImageWidget(row, book.getId(), ActionEnum.Resume,
-				!isWorking));
+		panel.add(createImageWidget(row, book.getId(), ActionEnum.Download, listener.canDownload(book)));
+		panel.add(createImageWidget(row, book.getId(), ActionEnum.Resume, listener.canResume(book)));
 
 		if (isWorking) {
-			panel.add(createImageWidget(row, book.getId(), ActionEnum.Abort, true));
+			panel.add(createImageWidget(row, book.getId(), ActionEnum.Abort, listener.canAbort(book)));
 		} else {
-			panel.add(createImageWidget(row, book.getId(), ActionEnum.Delete, true));
+			panel.add(createImageWidget(row, book.getId(), ActionEnum.Delete, listener.canDelete(book)));
 		}
 
 		bookListTable.setText(row, 1, book.getTitle());
@@ -201,7 +198,7 @@ public class GTusachViewImpl extends Composite implements GTusachView,
 				textAuthor.setText("");
 				textNumPages.setText("0");
 			} catch (BadDataException ex) {
-				
+				errorLabel.setText(ex.getMessage());
 			}
 
 		}
@@ -210,6 +207,7 @@ public class GTusachViewImpl extends Composite implements GTusachView,
 	@Override
 	public void setPresenter(Presenter listener) {
 		this.listener = listener;
+		createButton.setEnabled(listener.canCreate());		
 	}
 
 	class ActionImage extends Image {
@@ -291,6 +289,14 @@ public class GTusachViewImpl extends Composite implements GTusachView,
 		}
 	}
 
+	@Override
+	public void onAuthenticationChanged(AuthenticationEvent event) {
+		createButton.setEnabled(listener.canCreate());
+		// force refresh to update icon's states
+		List<Book> list = new ArrayList<Book>(bookTableMap.values());
+		setBooks(list.toArray(new Book[0]), false);
+	}
+	
 	class BookComparator implements Comparator<Book> {
 		@Override
 		public int compare(Book o1, Book o2) {
@@ -313,7 +319,6 @@ public class GTusachViewImpl extends Composite implements GTusachView,
 			}
 			return 0;
 		}
-
 	}
 	
 }

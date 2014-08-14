@@ -6,8 +6,13 @@ import java.util.List;
 
 import com.dv.gtusach.shared.Book;
 import com.dv.gtusach.shared.Book.BookStatus;
+import com.dv.gtusach.shared.User;
 
 public abstract class Persistence {
+	abstract public void saveUser(User user);
+	
+	abstract public User getUser(String userName);
+	
   abstract public Date getLastUpdateTime();
 	
   abstract public List<Book> loadBooks(BookStatus[] statusList);

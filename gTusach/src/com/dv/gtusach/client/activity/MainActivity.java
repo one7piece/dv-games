@@ -12,6 +12,9 @@ import java.util.Map.Entry;
 import com.dv.gtusach.client.BookService;
 import com.dv.gtusach.client.BookServiceAsync;
 import com.dv.gtusach.client.ClientFactory;
+import com.dv.gtusach.client.event.AuthenticationEvent;
+import com.dv.gtusach.client.event.AuthenticationEvent.AuthenticationTypeEnum;
+import com.dv.gtusach.client.event.AuthenticationEventHandler;
 import com.dv.gtusach.client.place.MainPlace;
 import com.dv.gtusach.client.ui.GTusachView;
 import com.dv.gtusach.shared.BadDataException;
@@ -32,7 +35,6 @@ public class MainActivity extends AbstractActivity implements
 	// Used to obtain views, eventBus, placeController
 	// Alternatively, could be injected via GIN
 	private ClientFactory clientFactory;
-	private BookServiceAsync bookService; // = GWT.create(BookService.class);
 	private GTusachView tusachView;
 	private List<Book> currentBooks = new ArrayList<Book>();
 	private long libraryUpdateTime = 0;
@@ -66,16 +68,24 @@ public class MainActivity extends AbstractActivity implements
 				refresh();
 			}
 		};
-		refreshTimer.scheduleRepeating(20000);				
+		refreshTimer.scheduleRepeating(20000);
+		
+		clientFactory.getEventBus().addHandler(AuthenticationEvent.TYPE, new AuthenticationEventHandler() {			
+			@Override
+			public void onAuthenticationChanged(AuthenticationEvent event) {
+				if (!(event.getType() == AuthenticationTypeEnum.LOG_OUT && !event.isSuccess())) {
+					tusachView.onAuthenticationChanged(event);
+				}
+			}
+		});
 	}
 
 	/**
 	 * Ask user before stopping this activity
 	 */
 	@Override
-	public String mayStop() {
+	public void onStop() {
 		refreshTimer.cancel();
-		return "Please hold on. This activity is stopping.";
 	}
 
 	/**
@@ -100,7 +110,7 @@ public class MainActivity extends AbstractActivity implements
 			}
 		};
 
-		getBookService().createBook(newBook, callback);
+		clientFactory.getBookService().createBook(clientFactory.getUser().getSessionId(), newBook, callback);
 	}
 	
 	@Override
@@ -117,7 +127,7 @@ public class MainActivity extends AbstractActivity implements
 				refresh();
 			}
 		};
-		getBookService().resumeBook(bookId, callback);
+		clientFactory.getBookService().resumeBook(clientFactory.getUser().getSessionId(), bookId, callback);
 	}
 	
 	@Override
@@ -127,14 +137,36 @@ public class MainActivity extends AbstractActivity implements
 	
 	@Override
 	public void abort(String bookId) {
-		// TODO Auto-generated method stub
-		
+		AsyncCallback<Void> callback = new AsyncCallback<Void>() {
+			@Override
+			public void onFailure(Throwable caught) {
+				String errorMsg = caught.getMessage();
+				tusachView.setErrorMessage(errorMsg);
+			}
+
+			@Override
+			public void onSuccess(Void result) {
+				refresh();
+			}
+		};
+		clientFactory.getBookService().abortBook(clientFactory.getUser().getSessionId(), bookId, callback);
 	}
 
 	@Override
 	public void delete(String bookId) {
-		// TODO Auto-generated method stub
-		
+		AsyncCallback<Void> callback = new AsyncCallback<Void>() {
+			@Override
+			public void onFailure(Throwable caught) {
+				String errorMsg = caught.getMessage();
+				tusachView.setErrorMessage(errorMsg);
+			}
+
+			@Override
+			public void onSuccess(Void result) {
+				refresh();
+			}
+		};
+		clientFactory.getBookService().deleteBook(clientFactory.getUser().getSessionId(), bookId, callback);
 	}
 	
 	private void loadBooks(final String[] bookIds) {
@@ -180,7 +212,7 @@ public class MainActivity extends AbstractActivity implements
 		} else {
 			tusachView.setHeaderMessage("Updating working books...");
 		}
-		getBookService().getBooks(bookIds, callback);
+		clientFactory.getBookService().getBooks(bookIds, callback);
 	}
 	
 	private void refresh() {
@@ -205,17 +237,36 @@ public class MainActivity extends AbstractActivity implements
 				}
 			}
 		};
-		getBookService().getLastUpdateTime(callback);
+		clientFactory.getBookService().getLastUpdateTime(callback);
 	}
 		
-	private BookServiceAsync getBookService() {
-		synchronized (this) {
-			if (bookService == null) {
-				bookService = GWT.create(BookService.class);
-			}
-		}
-		return bookService;
+	@Override
+	public boolean canDownload(Book book) {
+		boolean isWorking = (book.getStatus() == BookStatus.WORKING);
+		return !isWorking;
 	}
-
+	
+	@Override
+	public boolean canAbort(Book book) {
+		boolean isWorking = (book.getStatus() == BookStatus.WORKING);
+		return (clientFactory.getUser().getSessionId() > 0 && isWorking);
+	}
+	
+	@Override
+	public boolean canResume(Book book) {
+		boolean isWorking = (book.getStatus() == BookStatus.WORKING);
+		return (clientFactory.getUser().getSessionId() > 0 && !isWorking);
+	}
+	
+	@Override
+	public boolean canDelete(Book book) {
+		boolean isWorking = (book.getStatus() == BookStatus.WORKING);
+		return (clientFactory.getUser().getSessionId() > 0 && !isWorking);
+	}
+	
+	@Override
+	public boolean canCreate() {
+		return (clientFactory.getUser().getSessionId() > 0);
+	}
 	
 }
