@@ -9,6 +9,7 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import com.dv.gtusach.server.common.BookParser;
 import com.dv.gtusach.server.gae.BookMakerGAE;
 import com.dv.gtusach.shared.Book;
 import com.dv.gtusach.shared.Book.BookStatus;
@@ -25,6 +26,7 @@ public class CreateBookServlet extends HttpServlet {
   private static final Logger log = Logger.getLogger(CreateBookServlet.class.getCanonicalName());
   private static long recentId;
   private static final int NUM_BATCH_PAGES = 100;
+  private BookMakerGAE bookMaker = null;
 
   @Override
   protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException,
@@ -55,11 +57,13 @@ public class CreateBookServlet extends HttpServlet {
       log.log(Level.WARNING, "Missing bookId!");
       return;
     }
-    
-    BookMakerGAE bookMaker = new BookMakerGAE();
+    if (bookMaker == null) {
+    	log.info("CreateBookServlet - creating book maker...");
+    	bookMaker = new BookMakerGAE();
+    }
     bookMaker.setContext(getServletContext());
     Book book = bookMaker.getPersistence().findBook(bookId);
-    if (book != null) {
+    if (book != null) {    	
       bookMaker.createPages(book, NUM_BATCH_PAGES);
       if (book.getStatus() == BookStatus.WORKING) {
         bookMaker.scheduleJob(book);

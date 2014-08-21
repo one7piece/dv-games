@@ -34,7 +34,7 @@ public class BookMakerGAE extends BookMaker implements Serializable {
 
   public void setContext(ServletContext context) {
     this.context = context;
-    ((GAEPersistence)persistence).setContext(context);
+    //((GAEPersistence)persistence).setContext(context);
   }
   
   public Persistence getPersistence() {

@@ -2,26 +2,22 @@ package com.dv.gtusach.client.activity;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.Date;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map.Entry;
 
-import com.dv.gtusach.client.BookService;
-import com.dv.gtusach.client.BookServiceAsync;
 import com.dv.gtusach.client.ClientFactory;
-import com.dv.gtusach.client.event.AuthenticationEvent;
-import com.dv.gtusach.client.event.AuthenticationEvent.AuthenticationTypeEnum;
-import com.dv.gtusach.client.event.AuthenticationEventHandler;
+import com.dv.gtusach.client.event.PropertyChangeEvent;
+import com.dv.gtusach.client.event.PropertyChangeEvent.EventTypeEnum;
+import com.dv.gtusach.client.event.PropertyChangeEventHandler;
 import com.dv.gtusach.client.place.MainPlace;
 import com.dv.gtusach.client.ui.GTusachView;
 import com.dv.gtusach.shared.BadDataException;
 import com.dv.gtusach.shared.Book;
 import com.dv.gtusach.shared.Book.BookStatus;
+import com.dv.gtusach.shared.ParserScript;
+import com.dv.gtusach.shared.User;
+import com.dv.gtusach.shared.User.PermissionEnum;
 import com.google.gwt.activity.shared.AbstractActivity;
-import com.google.gwt.core.client.GWT;
 import com.google.gwt.event.shared.EventBus;
 import com.google.gwt.place.shared.Place;
 import com.google.gwt.user.client.Timer;
@@ -37,7 +33,8 @@ public class MainActivity extends AbstractActivity implements
 	private ClientFactory clientFactory;
 	private GTusachView tusachView;
 	private List<Book> currentBooks = new ArrayList<Book>();
-	private long libraryUpdateTime = 0;
+	private List<ParserScript> currentScripts = new ArrayList<ParserScript>();
+	private long libraryUpdateTime = -1;
 	private Timer refreshTimer;
 
 	public MainActivity(MainPlace place, ClientFactory clientFactory) {
@@ -51,9 +48,7 @@ public class MainActivity extends AbstractActivity implements
 	public void start(AcceptsOneWidget containerWidget, EventBus eventBus) {
 		tusachView = clientFactory.getMainView();		
 		tusachView.setPresenter(this);
-		tusachView.setErrorMessage("No error");
-		tusachView.setHeaderMessage("Loading...");
-		tusachView.setBooks(new Book[0], true);
+		tusachView.setInfoMessage("Loading...");
 		
 		containerWidget.setWidget(tusachView.asWidget());
 		
@@ -70,13 +65,12 @@ public class MainActivity extends AbstractActivity implements
 		};
 		refreshTimer.scheduleRepeating(20000);
 		
-		clientFactory.getEventBus().addHandler(AuthenticationEvent.TYPE, new AuthenticationEventHandler() {			
+		clientFactory.getEventBus().addHandler(PropertyChangeEvent.TYPE, new PropertyChangeEventHandler() {
 			@Override
-			public void onAuthenticationChanged(AuthenticationEvent event) {
-				if (!(event.getType() == AuthenticationTypeEnum.LOG_OUT && !event.isSuccess())) {
-					tusachView.onAuthenticationChanged(event);
-				}
-			}
+			public void onPropertyChanged(PropertyChangeEvent event) {
+				// pass on event, except for login error
+				tusachView.onPropertyChanged(event);
+			}			
 		});
 	}
 
@@ -88,13 +82,25 @@ public class MainActivity extends AbstractActivity implements
 		refreshTimer.cancel();
 	}
 
+	public User getUser() {
+		return clientFactory.getUser();
+	}
+	
+	public List<Book> getBooks() {
+		return currentBooks;
+	}
+	
+	public List<ParserScript> getParserScripts() {
+		return currentScripts;
+	}
+	
 	/**
 	 * Navigate to a new Place in the browser
 	 */
 	public void goTo(Place place) {
 		clientFactory.getPlaceController().goTo(place);
 	}
-	
+		
 	@Override
 	public void create(Book newBook) throws BadDataException {
 		AsyncCallback<Void> callback = new AsyncCallback<Void>() {
@@ -102,6 +108,7 @@ public class MainActivity extends AbstractActivity implements
 			public void onFailure(Throwable caught) {
 				String errorMsg = caught.getMessage();
 				tusachView.setErrorMessage(errorMsg);
+				validateSession();				
 			}
 
 			@Override
@@ -120,6 +127,7 @@ public class MainActivity extends AbstractActivity implements
 			public void onFailure(Throwable caught) {
 				String errorMsg = caught.getMessage();
 				tusachView.setErrorMessage(errorMsg);
+				validateSession();				
 			}
 
 			@Override
@@ -132,6 +140,7 @@ public class MainActivity extends AbstractActivity implements
 	
 	@Override
 	public void download(final String bookId) {		
+		validateSession();				
 		Window.open("/downloadBook?bookId=" + bookId, "", "");
 	}
 	
@@ -142,6 +151,7 @@ public class MainActivity extends AbstractActivity implements
 			public void onFailure(Throwable caught) {
 				String errorMsg = caught.getMessage();
 				tusachView.setErrorMessage(errorMsg);
+				validateSession();				
 			}
 
 			@Override
@@ -159,6 +169,7 @@ public class MainActivity extends AbstractActivity implements
 			public void onFailure(Throwable caught) {
 				String errorMsg = caught.getMessage();
 				tusachView.setErrorMessage(errorMsg);
+				validateSession();				
 			}
 
 			@Override
@@ -167,6 +178,27 @@ public class MainActivity extends AbstractActivity implements
 			}
 		};
 		clientFactory.getBookService().deleteBook(clientFactory.getUser().getSessionId(), bookId, callback);
+	}
+	
+	private void validateSession() {
+		if (clientFactory.getUser().getSessionId() > 0) {
+			AsyncCallback<Boolean> callback = new AsyncCallback<Boolean>() {
+				@Override
+				public void onFailure(Throwable caught) {
+				}
+
+				@Override
+				public void onSuccess(Boolean result) {
+					if (!result) {
+						// session has expired
+						clientFactory.getUser().setSessionId(-1);
+						tusachView.setErrorMessage("Session has expired!");
+						fireEvent(EventTypeEnum.Authentication, "logout", clientFactory.getUser());  
+					}
+				}
+			};
+			clientFactory.getBookService().validateSessionId(clientFactory.getUser().getSessionId(), callback);
+		}
 	}
 	
 	private void loadBooks(final String[] bookIds) {
@@ -199,18 +231,20 @@ public class MainActivity extends AbstractActivity implements
 					}
 				}
 				
-				String header = currentBooks.size() + " books. ";
+				List<Book> list = (reload ? currentBooks : Arrays.asList(result));
+				
+				String header = (reload ? "Loaded " : "Updated ") + list.size() + " books. ";
 				if (libraryUpdateTime > 0) {
 					header += new Date(libraryUpdateTime);
 				}
-				tusachView.setHeaderMessage(header);
-				tusachView.setBooks(result, reload);				
+				tusachView.setInfoMessage(header);
+				fireEvent(EventTypeEnum.Book, (reload ? "load" : "update"), list);				
 			}
 		};
 		if (bookIds == null || bookIds.length == 0) {
-			tusachView.setHeaderMessage("Loading book list...");
+			tusachView.setInfoMessage("Loading book list...");
 		} else {
-			tusachView.setHeaderMessage("Updating working books...");
+			tusachView.setInfoMessage("Updating working books...");
 		}
 		clientFactory.getBookService().getBooks(bookIds, callback);
 	}
@@ -229,8 +263,8 @@ public class MainActivity extends AbstractActivity implements
 			}
 
 			public void onSuccess(Long t) {
-				if (libraryUpdateTime == 0 || t.longValue() != libraryUpdateTime) {
-					libraryUpdateTime = t;
+				if (libraryUpdateTime == -1 || t.longValue() != libraryUpdateTime) {
+					libraryUpdateTime = t.longValue();
 					loadBooks(new String[0]);
 				} else if (workingBookIds.size() > 0) {
 					loadBooks(workingBookIds.toArray(new String[0]));
@@ -241,32 +275,135 @@ public class MainActivity extends AbstractActivity implements
 	}
 		
 	@Override
-	public boolean canDownload(Book book) {
-		boolean isWorking = (book.getStatus() == BookStatus.WORKING);
-		return !isWorking;
+	public boolean hasPermission(PermissionEnum permission) {
+		if (permission == PermissionEnum.Download) {
+			return true;
+		} else if (permission == PermissionEnum.Create) {
+			return (clientFactory.getUser().getSessionId() > 0);
+		} else if (permission == PermissionEnum.Update) {
+			// abort or resume
+			return (clientFactory.getUser().getSessionId() > 0);
+		} else if (permission == PermissionEnum.Delete) {
+			return (clientFactory.getUser().getSessionId() > 0);
+		} else if (permission == PermissionEnum.Javascript) {
+			boolean isAdmin = (clientFactory.getUser().getRole().toLowerCase().indexOf("admin") != -1); 
+			return (clientFactory.getUser().getSessionId() > 0 && isAdmin);
+		}
+		return false;
+	}
+
+	@Override
+	public void login(final String userName, final String password) {
+		AsyncCallback<User> callback = new AsyncCallback<User>() {
+			public void onFailure(Throwable caught) {
+				fireEvent(EventTypeEnum.Authentication, "login", clientFactory.getUser(), "Error connecting to server!");
+			}
+			public void onSuccess(User user) {
+				if (user != null) {
+					clientFactory.getUser().update(user);
+					boolean isAdmin = (user != null && user.getSessionId() > 0 
+							&& user.getRole().contains("admin"));
+					if (isAdmin) {
+						loadParserScripts();
+					}					
+					fireEvent(EventTypeEnum.Authentication, "login", clientFactory.getUser());
+				} else {
+					fireEvent(EventTypeEnum.Authentication, "login", clientFactory.getUser(), "Invalid user name or password!");					
+				}
+			}
+		};		
+		clientFactory.getBookService().login(userName, password, callback);
 	}
 	
 	@Override
-	public boolean canAbort(Book book) {
-		boolean isWorking = (book.getStatus() == BookStatus.WORKING);
-		return (clientFactory.getUser().getSessionId() > 0 && isWorking);
+	public void logout() {
+		AsyncCallback<Void> callback = new AsyncCallback<Void>() {
+			public void onFailure(Throwable caught) {
+				fireEvent(EventTypeEnum.Authentication, "logout", clientFactory.getUser(), "Error connecting to server!");				
+			}
+			public void onSuccess(Void v) {
+				clientFactory.getUser().setName("");
+				clientFactory.getUser().setSessionId(-1);
+				fireEvent(EventTypeEnum.Authentication, "logout", clientFactory.getUser());				
+			}
+		};		
+		clientFactory.getBookService().logout(clientFactory.getUser().getSessionId(), callback);
 	}
 	
+	private void loadParserScripts() {
+		AsyncCallback<ParserScript[]> callback = new AsyncCallback<ParserScript[]>() {
+			public void onFailure(Throwable e) {
+				tusachView.setErrorMessage("Error loading parser scripts. " + e.getMessage());
+			}
+			
+			public void onSuccess(ParserScript[] scripts) {
+				tusachView.setInfoMessage("Loaded " + scripts.length + " parser scripts");
+				currentScripts.clear();
+				currentScripts.addAll(Arrays.asList(scripts));
+				fireEvent(EventTypeEnum.Script, "load", currentScripts);				
+			}
+		};		
+		clientFactory.getBookService().getParserScripts(clientFactory.getUser().getSessionId(), callback);
+	}
+
 	@Override
-	public boolean canResume(Book book) {
-		boolean isWorking = (book.getStatus() == BookStatus.WORKING);
-		return (clientFactory.getUser().getSessionId() > 0 && !isWorking);
+	public void saveScript(final ParserScript script) {	
+		final String oldId = script.getId();
+		AsyncCallback<ParserScript> callback = new AsyncCallback<ParserScript>() {
+			public void onFailure(Throwable caught) {
+				fireEvent(EventTypeEnum.Script, "update", script, caught.getMessage());								
+			}
+			
+			public void onSuccess(ParserScript savedScript) {
+				tusachView.setInfoMessage("Parser script saved.");
+				int index = -1;
+				for (int i=0; i<currentScripts.size(); i++) {
+					if (oldId != null && currentScripts.get(i).getId().equals(oldId)) {
+						index = i;
+						break;
+					}
+				}
+				if (index != -1) {
+					currentScripts.set(index, savedScript);
+				} else {
+					currentScripts.add(savedScript);
+				}	
+				fireEvent(EventTypeEnum.Script, "update", savedScript);
+			}
+		};		
+		clientFactory.getBookService().saveParserScript(clientFactory.getUser().getSessionId(), script, callback);
 	}
-	
+
 	@Override
-	public boolean canDelete(Book book) {
-		boolean isWorking = (book.getStatus() == BookStatus.WORKING);
-		return (clientFactory.getUser().getSessionId() > 0 && !isWorking);
+	public void deleteScript(final String scriptId) {	
+		AsyncCallback<Void> callback = new AsyncCallback<Void>() {
+			public void onFailure(Throwable caught) {
+				fireEvent(EventTypeEnum.Script, "delete", scriptId, caught.getMessage());								
+			}
+			
+			public void onSuccess(Void v) {
+				tusachView.setInfoMessage("Parser script deleted.");
+				int index = -1;
+				for (int i=0; i<currentScripts.size(); i++) {
+					if (currentScripts.get(i).getId().equals(scriptId)) {
+						index = i;
+						break;
+					}
+				}
+				if (index != -1) {
+					ParserScript deleteScript = currentScripts.remove(index);
+					fireEvent(EventTypeEnum.Script, "delete", deleteScript);
+				} 
+			}
+		};		
+		clientFactory.getBookService().deleteParserScript(clientFactory.getUser().getSessionId(), scriptId, callback);
 	}
 	
-	@Override
-	public boolean canCreate() {
-		return (clientFactory.getUser().getSessionId() > 0);
+	private void fireEvent(EventTypeEnum type, String name, Object value) {
+		clientFactory.getEventBus().fireEvent(new PropertyChangeEvent(type, name, value, null));
 	}
 	
+	private void fireEvent(EventTypeEnum type, String name, Object value, String error) {
+		clientFactory.getEventBus().fireEvent(new PropertyChangeEvent(type, name, value, error));
+	}
 }

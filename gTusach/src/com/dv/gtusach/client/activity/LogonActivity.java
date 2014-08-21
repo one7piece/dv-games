@@ -42,39 +42,9 @@ public class LogonActivity extends AbstractActivity implements
 
 	@Override
 	public void logon(final String userName, final String password) {
-		AsyncCallback<Long> callback = new AsyncCallback<Long>() {
-			public void onFailure(Throwable caught) {
-				clientFactory.getEventBus().fireEvent(new AuthenticationEvent(userName, AuthenticationTypeEnum.LOG_IN, false));
-				clientFactory.getLogonView().setErrorMessage("Error connecting to server!");
-			}
-			public void onSuccess(Long t) {
-				if (t > 0) {
-					clientFactory.getUser().setName(userName);
-					clientFactory.getUser().setSessionId(t);
-					clientFactory.getEventBus().fireEvent(new AuthenticationEvent(userName, AuthenticationTypeEnum.LOG_IN, true));
-					goTo(new MainPlace("main"));
-				} else {
-					clientFactory.getLogonView().setErrorMessage("Invalid user name or password!");
-				}
-			}
-		};		
-		clientFactory.getBookService().login(userName, password, callback);
 	}
 	
 	public void logout() {
-		AsyncCallback<Void> callback = new AsyncCallback<Void>() {
-			public void onFailure(Throwable caught) {
-				clientFactory.getEventBus().fireEvent(new AuthenticationEvent(
-						clientFactory.getUser().getName(), AuthenticationTypeEnum.LOG_OUT, false));
-			}
-			public void onSuccess(Void v) {
-				clientFactory.getUser().setName("");
-				clientFactory.getUser().setSessionId(-1);
-				clientFactory.getEventBus().fireEvent(new AuthenticationEvent(
-						clientFactory.getUser().getName(), AuthenticationTypeEnum.LOG_OUT, true));
-			}
-		};		
-		clientFactory.getBookService().logout(clientFactory.getUser().getSessionId(), callback);
 	}
 	
 }

@@ -11,14 +11,14 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.servlet.ServletContext;
-
 import com.dv.gtusach.server.common.AttachmentData;
 import com.dv.gtusach.server.common.ChapterHtml;
 import com.dv.gtusach.server.common.Persistence;
 import com.dv.gtusach.server.common.SectionData;
 import com.dv.gtusach.shared.Book;
 import com.dv.gtusach.shared.Book.BookStatus;
+import com.dv.gtusach.shared.ParserScript;
+import com.dv.gtusach.shared.SystemInfo;
 import com.dv.gtusach.shared.User;
 import com.google.appengine.api.datastore.Blob;
 import com.google.appengine.api.datastore.DatastoreService;
@@ -28,13 +28,15 @@ import com.google.appengine.api.datastore.EntityNotFoundException;
 import com.google.appengine.api.datastore.FetchOptions;
 import com.google.appengine.api.datastore.Key;
 import com.google.appengine.api.datastore.KeyFactory;
-import com.google.appengine.api.datastore.PropertyProjection;
 import com.google.appengine.api.datastore.Query;
 import com.google.appengine.api.datastore.Query.Filter;
 import com.google.appengine.api.datastore.Query.FilterOperator;
 import com.google.appengine.api.datastore.Query.FilterPredicate;
+import com.google.appengine.api.datastore.Text;
 
 public class GAEPersistence extends Persistence implements Serializable {
+  public static final String SYSTEM_INFO_KIND = "SystemInfo";
+  public static final String SCRIPT_KIND = "Script";
   public static final String USER_KIND = "User";
   public static final String LIBRARY_KIND = "Libary";
   public static final String BOOK_KIND = "Book";
@@ -43,22 +45,20 @@ public class GAEPersistence extends Persistence implements Serializable {
   public static final String CHAPTER_KIND = "Chapter";
   public static final String CHAPTER_ATTACHMENT_KIND = "ChapterAttachment";
   private static Logger log = Logger.getLogger(GAEPersistence.class.getCanonicalName());
-  private transient ServletContext context;
   private long numBookReads = 0;
   private long numChapterReads = 0;
   private long numAttachmentReads = 0;
   private long numSectionReads = 0;
   private List<Book> cacheBooks = new ArrayList<Book>();
-  private Date libraryTimestamp = null;
-
-  public ServletContext getContext() {
-    return context;
+  private SystemInfo systemInfo = null;
+  
+  public GAEPersistence() {
+  	SystemInfo info = getSystemInfo();
+  	// initialise system info with just the id
+  	systemInfo = new SystemInfo();
+  	systemInfo.setId(info.getId());  	
   }
-
-  public void setContext(ServletContext context) {
-    this.context = context;
-  }
-
+    
   protected Key getLibraryKey() {
     return KeyFactory.createKey(LIBRARY_KIND, LIBRARY_NAME);
   }
@@ -66,9 +66,157 @@ public class GAEPersistence extends Persistence implements Serializable {
   private String null2empty(String s) {
     return (s != null ? s : "");
   }
+  
+  @Override
+  public SystemInfo getSystemInfo() {
+  	SystemInfo result = null;
+    Query query = new Query(SYSTEM_INFO_KIND, getLibraryKey());
+    DatastoreService datastore = DatastoreServiceFactory.getDatastoreService();
+    List<Entity> list = datastore.prepare(query).asList(FetchOptions.Builder.withLimit(10));
+    if (list != null && list.size() > 0) {
+    	Entity entity = list.get(0);
+    	result = new SystemInfo();
+    	result.setId(KeyFactory.keyToString(entity.getKey()));
+    	result.setBookLastUpdateTime((Date)entity.getProperty("bookLastUpdateTime"));
+    	result.setUserLastUpdateTime((Date)entity.getProperty("userLastUpdateTime"));
+    	result.setScriptLastUpdateTime((Date)entity.getProperty("scriptLastUpdateTime"));
+    	String s = (String)entity.getProperty("editingScript");
+    	result.setEditingScript(s != null && s.equalsIgnoreCase("true"));
+      log.info("loaded system info: " + result);
+    } else {
+    	result = new SystemInfo();
+    	Date now = new Date();
+    	result.setBookLastUpdateTime(now);
+    	result.setUserLastUpdateTime(now);
+    	result.setScriptLastUpdateTime(now);
+    	result.setEditingScript(Boolean.FALSE);
+   		saveSystemInfo(result);
+    }
+    return result;
+  }
+  
+  public void saveSystemInfo(SystemInfo info) {
+  	log.info("saveSystemInfo() - " + info); 
+    try {
+      DatastoreService datastore = DatastoreServiceFactory.getDatastoreService();
+      Entity entity = null;
+      if (info.getId() == null) {
+        entity = new Entity(SYSTEM_INFO_KIND, getLibraryKey());
+      } else {
+        Key key = KeyFactory.stringToKey(info.getId());
+        entity = new Entity(key);
+      }    	    	
+      // only save the property which was set
+      if (info.getBookLastUpdateTime() != null) {
+        entity.setProperty("bookLastUpdateTime", info.getBookLastUpdateTime());
+      }
+      if (info.getUserLastUpdateTime() != null) {
+        entity.setProperty("userLastUpdateTime", info.getUserLastUpdateTime());
+      }
+      if (info.getScriptLastUpdateTime() != null) {
+        entity.setProperty("scriptLastUpdateTime", info.getScriptLastUpdateTime());
+      }
+      if (info.isEditingScript() != null) {
+        entity.setProperty("editingScript", info.isEditingScript().toString());
+      }
+      Key key = datastore.put(entity);
+      log.log(Level.INFO, "Saved System Info: " + info);
+      info.setId(KeyFactory.keyToString(key));
+            
+    } catch (Exception ex) {
+      log.log(Level.WARNING, "Error saving system info: " + info, ex);
+      throw new RuntimeException("Error saving system info: " + ex.getMessage());
+    }
+  }
+  
+  @Override
+	public void saveScript(ParserScript script) {
+  	Date now = new Date();
+    try {
+      Entity entity = null;
+      //ParserScript oldScript = getScript(script.getDomainName());
+      if (script.getId() == null) {
+        entity = new Entity(SCRIPT_KIND, getLibraryKey());
+      } else {
+        Key key = KeyFactory.stringToKey((String) script.getId());
+        entity = new Entity(key);
+      }    	    	
+      entity.setProperty("domainName", script.getDomainName());
+      entity.setProperty("script", new Text(script.getScript()));
+      script.setTimestamp(now);
+      entity.setProperty("timestamp", script.getTimestamp());
 
+      DatastoreService datastore = DatastoreServiceFactory.getDatastoreService();
+      Key key = datastore.put(entity);
+      log.log(Level.INFO, "Saved script: " + script);
+      script.setId(KeyFactory.keyToString(key));
+      
+      systemInfo.setScriptLastUpdateTime(now);
+      saveSystemInfo(systemInfo);
+    } catch (Exception ex) {
+      log.log(Level.WARNING, "Error saving script: " + script, ex);
+      throw new RuntimeException("Error saving script: " + ex.getMessage());
+    }
+	}
+
+  @Override
+	public void deleteScript(String scriptId) {
+  	Date now = new Date();
+    try {
+      DatastoreService datastore = DatastoreServiceFactory.getDatastoreService();
+      datastore.delete(KeyFactory.stringToKey(scriptId));
+      systemInfo.setScriptLastUpdateTime(now);
+      saveSystemInfo(systemInfo);
+      
+      log.log(Level.INFO, "deleted script: " + scriptId);      
+    } catch (Exception ex) {
+      log.log(Level.WARNING, "Error deleting script: " + scriptId, ex);
+      throw new RuntimeException("Error deleting script: " + ex.getMessage());
+    }
+	}
+  
+  @Override
+	public ParserScript getScript(String domainName) {
+		Filter nameFilter = new FilterPredicate("domainName", FilterOperator.EQUAL, domainName);
+    Query query = new Query(SCRIPT_KIND, getLibraryKey()).setFilter(nameFilter);
+    DatastoreService datastore = DatastoreServiceFactory.getDatastoreService();
+    List<Entity> list = datastore.prepare(query).asList(FetchOptions.Builder.withLimit(100));
+    if (list.size() > 0) {
+    	Entity entity = list.get(0);
+    	ParserScript script = new ParserScript();
+    	script.setId(KeyFactory.keyToString(entity.getKey()));
+    	script.setDomainName((String) entity.getProperty("domainName"));
+    	script.setScript(((Text) entity.getProperty("script")).getValue());
+      log.info("loaded script: " + script);
+    	return script;
+    }
+    return null;
+	}
+		
+	@Override
+	public List<ParserScript> getScripts(Date timestamp) {
+    log.info("get scripts after: " + timestamp);
+		List<ParserScript> result = new ArrayList<ParserScript>();			
+    Query query = new Query(SCRIPT_KIND, getLibraryKey());
+    if (timestamp != null) {
+  		Filter filter = new FilterPredicate("timestamp", FilterOperator.GREATER_THAN, timestamp);
+  		query.setFilter(filter);
+    }
+    DatastoreService datastore = DatastoreServiceFactory.getDatastoreService();
+    List<Entity> list = datastore.prepare(query).asList(FetchOptions.Builder.withLimit(100));
+    for (Entity entity: list) {
+    	ParserScript script = new ParserScript();
+    	script.setId(KeyFactory.keyToString(entity.getKey()));
+    	script.setDomainName((String) entity.getProperty("domainName"));
+    	script.setScript(((Text) entity.getProperty("script")).getValue());
+      log.info("loaded script: " + script);
+      result.add(script);
+    }
+    return result;
+	}
+	
 	public void saveUser(User user) {
-    log.info("saving user: " + user.getName());
+    log.info("saving user: " + user);
     try {
       Entity entity = null;
     	User oldUser = getUser(user.getName());
@@ -88,7 +236,10 @@ public class GAEPersistence extends Persistence implements Serializable {
       Key key = datastore.put(entity);
       log.log(Level.INFO, "Saved user key: " + key);
       user.setId(KeyFactory.keyToString(key));
-            
+
+      systemInfo.setUserLastUpdateTime(new Date());
+      saveSystemInfo(systemInfo);
+      
     } catch (Exception ex) {
       log.log(Level.WARNING, "Error saving user: " + user, ex);
       throw new RuntimeException("Error saving user: " + ex.getMessage());
@@ -107,16 +258,13 @@ public class GAEPersistence extends Persistence implements Serializable {
       user.setName((String) entity.getProperty("name"));
       user.setRole((String) entity.getProperty("role"));
       user.setPassword((String) entity.getProperty("password"));
-      user.setLastLoginTime((Date)entity.getProperty("lastLoginTime"));    	
+      user.setLastLoginTime((Date)entity.getProperty("lastLoginTime"));
+      log.info("loaded user: " + user);
     	return user;
     }
     return null;
 	}
-	
-  public Date getLastUpdateTime() {
-  	return libraryTimestamp;
-  }
-  
+	  
   @Override
   public void saveBook(Book book) {
     log.info("saving book: " + book);
@@ -151,63 +299,30 @@ public class GAEPersistence extends Persistence implements Serializable {
       log.log(Level.INFO, "Saved book key: " + key);
       book.setId(KeyFactory.keyToString(key));
       
-      Entity libraryEntity = new Entity(getLibraryKey());
-      libraryEntity.setProperty("lastUpdatedTime", now);
-      datastore.put(libraryEntity);
-      
+      systemInfo.setBookLastUpdateTime(now);
+      saveSystemInfo(systemInfo);
+            
       updateCache(book, now, false);
     } catch (Exception ex) {
       log.log(Level.WARNING, "Error saving book: " + book, ex);
       throw new RuntimeException("Error saving book: " + ex.getMessage());
     }
   }
-
-  private void updateCache(Book book, Date timestamp, boolean deleting) {
-  	String searchId = (String)book.getId(); 
-    synchronized (cacheBooks) {    	
-    	if (libraryTimestamp != null) {
-    		libraryTimestamp = timestamp;
-    		int index = -1;
-    		for (int i=0; i<cacheBooks.size(); i++) {
-    			String bookId = (String)cacheBooks.get(i).getId(); 
-    			if (bookId.equals(searchId)) {
-    				index = i;
-    				break;
-    			}
-    		}
-    		if (deleting) {
-    			if (index != -1) {
-    				cacheBooks.remove(index);
-    			}
-    		} else {
-    			if (index != -1) {
-    				cacheBooks.set(index, book);
-    			} else {
-    				cacheBooks.add(0, book);
-    			}
-    		}
-    	}
-    }
-  }
   
   @Override
   public List<Book> loadBooks(BookStatus[] statusList) {
-  	// read the timestamp and see if it has changed
-    DatastoreService datastore = DatastoreServiceFactory.getDatastoreService();
-    
-    Query proj = new Query(LIBRARY_KIND, null);
-    proj.addProjection(new PropertyProjection("lastUpdatedTime", Date.class));
-    List<Entity> list = datastore.prepare(proj).asList(FetchOptions.Builder.withLimit(1));
-    Date timestamp = null;
-    if (list.size() == 1) {
-    	timestamp = (Date)list.get(0).getProperty("lastUpdatedTime");
-    }
+  	// read the timestamp and see if it has changed    
+    SystemInfo newInfo = getSystemInfo();
+        
   	synchronized (cacheBooks) {
-      if (timestamp == null || libraryTimestamp == null || libraryTimestamp.before(timestamp)) {
-    		List<Book> loadedBooks = loadBooks();
+      if ((systemInfo.getBookLastUpdateTime() == null)
+      		|| (newInfo.getBookLastUpdateTime() != null       		
+      		&& systemInfo.getBookLastUpdateTime().before(newInfo.getBookLastUpdateTime()))) {
+      	// load books from datastore
+    		List<Book> loadedBooks = doLoadBooks();
     		cacheBooks.clear();
     		cacheBooks.addAll(loadedBooks);
-    		libraryTimestamp = timestamp;
+    		newInfo.setBookLastUpdateTime(newInfo.getBookLastUpdateTime());
       }
   	}
   	
@@ -234,13 +349,13 @@ public class GAEPersistence extends Persistence implements Serializable {
     return books;
   }
 
-  private List<Book> loadBooks() {
+  private List<Book> doLoadBooks() {
     DatastoreService datastore = DatastoreServiceFactory.getDatastoreService();
     Query query = new Query(BOOK_KIND, getLibraryKey());
     query.addSort("lastUpdatedTime", Query.SortDirection.DESCENDING);
     List<Entity> list = datastore.prepare(query).asList(FetchOptions.Builder.withLimit(500));
     numBookReads++;
-    log.info("Found " + list.size() + " books in library. numBookReads=" + numBookReads
+    log.info("doLoadBooks() - Found " + list.size() + " books in library. numBookReads=" + numBookReads
     		+ ", numChapterReads=" + numChapterReads + ", numAttachmentReads=" + numAttachmentReads
     		+ ", numSectionReads=" + numSectionReads);
     List<Book> books = new ArrayList<Book>();
@@ -533,12 +648,35 @@ public class GAEPersistence extends Persistence implements Serializable {
     }
     
     datastore.delete(KeyFactory.stringToKey((String) book.getId()));
-    
-    Entity libraryEntity = new Entity(getLibraryKey());
-    libraryEntity.setProperty("lastUpdatedTime", now);
-    datastore.put(libraryEntity);
+        
+    systemInfo.setBookLastUpdateTime(now);
+    saveSystemInfo(systemInfo);
     
     updateCache(book, now, true);
   }
 
+  private void updateCache(Book book, Date timestamp, boolean deleting) {
+  	String searchId = (String)book.getId(); 
+    synchronized (cacheBooks) {
+  		int index = -1;
+  		for (int i=0; i<cacheBooks.size(); i++) {
+  			String bookId = (String)cacheBooks.get(i).getId(); 
+  			if (bookId.equals(searchId)) {
+  				index = i;
+  				break;
+  			}
+  		}
+  		if (deleting) {
+  			if (index != -1) {
+  				cacheBooks.remove(index);
+  			}
+  		} else {
+  			if (index != -1) {
+  				cacheBooks.set(index, book);
+  			} else {
+  				cacheBooks.add(0, book);
+  			}
+  		}    	
+    }
+  }
 }

@@ -22,7 +22,7 @@ body {
 }
 
 /* stock list flex table */
-.bookList {
+.bookListTable {
   border: 1px solid silver;
   padding: 2px;
   margin-bottom:6px;
@@ -37,15 +37,16 @@ body {
 	border: 1px skyblue;
 	border-radius: 5px;
 }
-.gwt-Label-Error {
-	color: Red;
-}
 .margin-left {
 	margin-left: 10px;
 }
 .margin-top {
 	margin-top: 10px;
 }
-floatLeft {
+.floatLeft {
 	float: left;
+}
+.errorLabel {
+	color: red;
+	font-weight: bold;
 }

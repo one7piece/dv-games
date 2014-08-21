@@ -6,12 +6,21 @@ import com.google.gwt.user.client.rpc.GwtTransient;
 import com.google.gwt.user.client.rpc.IsSerializable;
 
 public class User implements IsSerializable {
+	public static enum PermissionEnum {
+		None,
+		Download,
+		Create,
+		Delete,
+		Update,
+		Javascript
+	}
+	
 	private String id;
 	private String name;
 	private String role;
 	private Date lastLoginTime;
+	private long sessionId = -1;
 	@GwtTransient private String password;
-	@GwtTransient private long sessionId = -1;
 	
 	public User() {		
 	}
@@ -19,6 +28,15 @@ public class User implements IsSerializable {
 	public User(String name, String role) {
 		this.name = name;
 		this.role = role;
+	}
+	
+	public void update(User user) {
+		this.id = user.id;
+		this.name = user.name;
+		this.password = user.password;
+		this.lastLoginTime = user.lastLoginTime;
+		this.role = user.role;
+		this.sessionId = user.sessionId;
 	}
 	
 	public String getId() {

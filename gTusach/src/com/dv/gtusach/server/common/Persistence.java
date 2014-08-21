@@ -6,14 +6,21 @@ import java.util.List;
 
 import com.dv.gtusach.shared.Book;
 import com.dv.gtusach.shared.Book.BookStatus;
+import com.dv.gtusach.shared.ParserScript;
+import com.dv.gtusach.shared.SystemInfo;
 import com.dv.gtusach.shared.User;
 
 public abstract class Persistence {
-	abstract public void saveUser(User user);
+	abstract public void saveScript(ParserScript script); 
+	abstract public void deleteScript(String scriptId); 
+	abstract public ParserScript getScript(String domainName);
+	abstract public List<ParserScript> getScripts(Date timestamp);
 	
+	abstract public void saveUser(User user);	
 	abstract public User getUser(String userName);
 	
-  abstract public Date getLastUpdateTime();
+  abstract public SystemInfo getSystemInfo();
+  abstract public void saveSystemInfo(SystemInfo info);
 	
   abstract public List<Book> loadBooks(BookStatus[] statusList);
   abstract public Book findBook(Object id);  

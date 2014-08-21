@@ -4,46 +4,43 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import javax.script.ScriptException;
 
 import nl.siegmann.epublib.domain.Author;
 import nl.siegmann.epublib.domain.Resource;
 import nl.siegmann.epublib.epub.EpubWriter;
 import nl.siegmann.epublib.service.MediatypeService;
 
-import com.dv.gtusach.server.parser.LuongSonParser;
-import com.dv.gtusach.server.parser.TangThuVienParser;
-import com.dv.gtusach.server.parser.TruyenHixx2Parser;
-import com.dv.gtusach.server.parser.TruyenHixxParser;
-import com.dv.gtusach.server.parser.TruyenyyParser;
-import com.dv.gtusach.server.parser.TungHoanhParser;
-import com.dv.gtusach.server.parser.VietMessengerParser;
 import com.dv.gtusach.shared.BadDataException;
 import com.dv.gtusach.shared.Book;
 import com.dv.gtusach.shared.Book.BookStatus;
+import com.dv.gtusach.shared.ParserScript;
 
 public abstract class BookMaker {
   private static final int MAX_PENDING_BOOKS = 3;
   private static Logger log = Logger.getLogger(BookMaker.class.getCanonicalName());
-  private static BookParser[] parsers = { new TungHoanhParser(), new LuongSonParser(), 
-    new TruyenHixxParser(), new TruyenHixx2Parser(), new VietMessengerParser(), 
-    new TangThuVienParser(), new TruyenyyParser() };
   private String templateHtml = null;
 
   public BookMaker() {
   }
-
-  public BookParser findParser(String url) {
-    BookParser result = null;
-    for (BookParser parser : parsers) {
-      if (parser.checkSupport(url)) {
-        result = parser;
-        break;
-      }
-    }
+      
+  private BookParser findParser(String url) throws BadDataException {
+  	BookParser result = null;
+		try {
+			result = BookParserFactory.getInstance().getParser(getPersistence(), url);
+		} catch (ScriptException e) {
+			throw new BadDataException("Parser script error! " + e.getMessage());
+		}
     if (result != null) {
+    	if (result.getScriptError() != null) {
+  			throw new BadDataException("Parser script error! " + result.getScriptError().getMessage());
+    	}
       result.setBookTemplate(getTemplateHtml());
     }
     return result;

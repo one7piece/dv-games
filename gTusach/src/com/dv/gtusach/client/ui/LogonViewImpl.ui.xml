@@ -38,7 +38,6 @@
 					<g:Label text="Tu Sach Kiem Hiep" wordWrap="false"
 						styleName="{style.title}" horizontalAlignment="ALIGN_LEFT" height="150px"
 						width="150px" />
-					<g:SimplePanel height="150px" width="150px" />
 				</g:HorizontalPanel>
 			</g:north>
 			<g:center>

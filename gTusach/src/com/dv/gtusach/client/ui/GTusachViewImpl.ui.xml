@@ -5,71 +5,116 @@
 	.important {
 		font-weight: bold;
 	}
+		
 	.borderPanel {
-		margin: 5px 5px 5px 5px;
-		border: 1px solid skyblue;
+		margin: 10px 10px 10px 10px;
+		border: 3px solid skyblue;
+		border-radius: 5px;
 	}
-	.margin-top {
-		margin-top: 10px;
+
+	.profileTable {
+		margin: 10px 10px 10px 10px;
+		padding: 10px;
+		border: 3px solid skyblue;
+		border-radius: 5px;
 	}
-	.margin-left {
-		margin-top: 5px;
-		margin-left: 10px;
+
+	.createTable {
+		margin: 10px 10px 10px 10px;
+		padding: 10px;
+		border: 3px solid skyblue;
+		overflow: visible;
+		border-radius: 5px;
 	}
+			
 	.background {
 		background-repeat: repeat;
 		background-image: url(images/background.jpg);
 	}
+	
 	.title {
-		color: Blue;
+		color: blue;
+		margin-left: 10px;
 		font-style: normal;
 		font-weight: bold;
+		font-size: 14px;
 	}
+	
 	.floatLeft {
 		float: left;
 	}
+	
 	.createTable {
 		padding-left: 10px;
 		padding-bottom: 5px;
 	}
+	
+	.bottomPanel {	
+		clear: both;
+	}
+
+	.disclosureHeader {
+		float: left;
+		font-weight: bold;
+	}
+	
+	.scriptControlPanel {
+		margin: 10px 10px 10px 10px;
+		padding: 10px;
+		border: 3px solid skyblue;
+		border-radius: 5px;
+	}
+	
+	.button {
+		margin-left: 10px;
+	}
+	
+	.scriptTextArea {
+		margin: 10px 10px 10px 10px;
+		border: 3px solid skyblue;
+		border-radius: 5px;
+	}
+
 	</ui:style>
+
 	<g:HTMLPanel width="100%" height="100%" styleName="{style.background}">
-		<g:DockLayoutPanel height="100%" width="100%">
-			<g:north size="220">
-				<g:DockLayoutPanel unit="PX" styleName="{style.borderPanel}">
-					<g:north size="25">
-						<g:FlowPanel styleName="{style.margin-left}">
-							<g:Label text="Create New Book" styleName="{style.title}"/>
-						</g:FlowPanel>
-					</g:north>
-					<g:center>
-						<g:FlexTable ui:field="bookCreateTable" width="100%" styleName="{style.createTable}"/>
-					</g:center>
-					<g:south size="40">
-						<g:FlowPanel styleName="{style.margin-left}">
-							<g:Button ui:field="createButton" text="Create New Book" addStyleNames="gwt-Button {style.floatLeft}"/>
-							<g:Label ui:field="errorLabel" horizontalAlignment="ALIGN_CENTER" width="80%" addStyleNames="gwt-Label-Error {style.floatLeft}" wordWrap="false"/>
-						</g:FlowPanel>
-					</g:south>
-				</g:DockLayoutPanel>
-			</g:north>
-			
-			<g:center>
-				<g:DockLayoutPanel unit="PX">
-					<g:north size="30.0">
-						<g:FlowPanel styleName="{style.margin-left}">
-							<g:Label ui:field="bookListHeaderLabel" text="Not Loaded"/>
-						</g:FlowPanel>
-					</g:north>
+		<g:FlowPanel width="100%" height="100%">
+			<g:FlowPanel>
+				<g:DisclosurePanel ui:field="profilePanel" width="" height="" styleName="{style.disclosureHeader}">
+					<g:header>Profile</g:header>
+					<g:FlexTable ui:field="profileTable" width="" height="" styleName="{style.profileTable}" />
+				</g:DisclosurePanel>
+				<g:DisclosurePanel ui:field="createPanel" width="70%" styleName="{style.disclosureHeader}">
+					<g:header>Create New Book</g:header>
+					<g:FlexTable ui:field="createTable" width="99%" height="150px" styleName="{style.createTable}" />
+				</g:DisclosurePanel>
+				<g:DisclosurePanel ui:field="scriptPanel" width="99%" styleName="{style.disclosureHeader}" height="">
+					<g:header>Parser Scripts</g:header>
+					<g:HorizontalPanel>
+					<g:VerticalPanel width="200px" height="150px" styleName="{style.scriptControlPanel}">
+						<g:ListBox ui:field="chkScriptList" width="100%"/>
+						<g:Label text="Domain Name"/>
+						<g:TextBox ui:field="textDomainName" width="100%"/>
+						<g:HorizontalPanel>
+							<g:Button ui:field="newButton">New</g:Button>
+							<g:Button ui:field="saveEditButton" addStyleNames="{style.button}">Edit</g:Button>
+							<g:Button ui:field="deleteCancelButton" addStyleNames="{style.button}">Delete</g:Button>
+						</g:HorizontalPanel>							
+					</g:VerticalPanel>					
+					<g:ScrollPanel ui:field="scriptScrollPanel">
+						<g:TextArea ui:field="scriptTextArea" width="500px" height="200px" characterWidth="80" styleName="{style.scriptTextArea}"/>
+					</g:ScrollPanel>											
+					</g:HorizontalPanel>
+				</g:DisclosurePanel>
 				
-					<g:center>
-						<g:ScrollPanel styleName="{style.borderPanel}">
-							<g:FlexTable ui:field="bookListTable" width="100%"/>
-						</g:ScrollPanel>
-					</g:center>
-				</g:DockLayoutPanel>
-			</g:center>
-									
-		</g:DockLayoutPanel>
+			</g:FlowPanel>
+			<g:FlowPanel width="100%" styleName="{style.bottomPanel}">
+				<g:Label ui:field="messageLabel" text="" styleName="margin-left"/>
+				<g:ScrollPanel ui:field="bookListPanel" width="99%" styleName="floatLeft">
+					<g:FlexTable ui:field="bookListTable" height="100%" width="100%" styleName="{style.borderPanel}" />
+				</g:ScrollPanel>
+			</g:FlowPanel>			
+		</g:FlowPanel>
+
 	</g:HTMLPanel>
 </ui:UiBinder> 

@@ -1,5 +1,6 @@
 package com.dv.gtusach.client.event;
 
+import com.dv.gtusach.shared.User;
 import com.google.gwt.event.shared.GwtEvent;
 
 public class AuthenticationEvent extends GwtEvent<AuthenticationEventHandler> {
@@ -9,13 +10,13 @@ public class AuthenticationEvent extends GwtEvent<AuthenticationEventHandler> {
 	};
 	
 	public static Type<AuthenticationEventHandler> TYPE = new Type<AuthenticationEventHandler>();
-	private String userName;
-	private boolean success;
+	private User user;
+	private String errorMessage;
 	private AuthenticationTypeEnum type;
 	
-	public AuthenticationEvent(String userName, AuthenticationTypeEnum type, boolean success) {
-		this.userName = userName;
-		this.success = success;
+	public AuthenticationEvent(User user, AuthenticationTypeEnum type, String errorMessage) {
+		this.user = user;
+		this.errorMessage = errorMessage;
 		this.type = type;
 	}
 	
@@ -29,14 +30,18 @@ public class AuthenticationEvent extends GwtEvent<AuthenticationEventHandler> {
 		handler.onAuthenticationChanged(this);
 	}
 
-	public String getUserName() {
-		return userName;
+	public User getUser() {
+		return user;
 	}
 
 	public boolean isSuccess() {
-		return success;
+		return (errorMessage == null);
 	}
 
+	public String getErrorMessage() {
+		return errorMessage;
+	}
+	
 	public AuthenticationTypeEnum getType() {
 		return type;
 	}		
