@@ -4,7 +4,9 @@ import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -12,6 +14,8 @@ import com.dv.gtusach.client.BookService;
 import com.dv.gtusach.server.gae.BookMakerGAE;
 import com.dv.gtusach.shared.BadDataException;
 import com.dv.gtusach.shared.Book;
+import com.dv.gtusach.shared.ParserScript;
+import com.dv.gtusach.shared.SystemInfo;
 import com.dv.gtusach.shared.User;
 import com.google.gwt.user.server.rpc.RemoteServiceServlet;
 
@@ -20,19 +24,43 @@ public class BookServiceImpl extends RemoteServiceServlet implements
 	private static final long serialVersionUID = 1L;
 	private static final Logger log = Logger.getLogger(BookServiceImpl.class
 			.getCanonicalName());
+	private static final long SESSION_TIMEOUT_MS = 15*60*1000;
 	private BookMakerGAE bookMaker = null;
-	private HashMap<Long, Long> sessionMap = new HashMap<Long, Long>();
+	private HashMap<Long, LogonUser> sessionMap = new HashMap<Long, LogonUser>();
 
 	@Override
 	public long getLastUpdateTime() {
 		initBookMaker();
-		Date t = bookMaker.getPersistence().getLastUpdateTime();
-		if (t != null) {
-			return t.getTime();
+		SystemInfo info = bookMaker.getPersistence().getSystemInfo();
+		if (info != null && info.getBookLastUpdateTime() != null) {
+			return info.getBookLastUpdateTime().getTime();
 		}
 		return 0;
 	}
 
+	@Override
+	public ParserScript[] getParserScripts(long sessionId) throws BadDataException {
+		initBookMaker();
+		checkPermission(sessionId, "script.read");
+		List<ParserScript> list = bookMaker.getPersistence().getScripts(null);
+		return list.toArray(new ParserScript[0]);
+	}
+	
+	@Override
+	public ParserScript saveParserScript(long sessionId, ParserScript script) throws BadDataException {
+		initBookMaker();
+		checkPermission(sessionId, "script.write");
+		bookMaker.getPersistence().saveScript(script);
+		return script;
+	}
+
+	@Override
+	public void deleteParserScript(long sessionId, String scriptId) throws BadDataException {
+		initBookMaker();
+		checkPermission(sessionId, "script.delete");
+		bookMaker.getPersistence().deleteScript(scriptId);
+	}
+	
 	@Override
 	public Book[] getBooks(String[] bookIds) {
 		initBookMaker();
@@ -52,6 +80,7 @@ public class BookServiceImpl extends RemoteServiceServlet implements
 
 	@Override
 	public void createBook(long sessionId, Book newBook) throws BadDataException {
+		checkPermission(sessionId, "create");
 		initBookMaker();
 		bookMaker.create(newBook.getStartPageUrl(), newBook.getTitle(),
 				newBook.getMaxNumPages(), newBook.getAuthor());
@@ -67,7 +96,6 @@ public class BookServiceImpl extends RemoteServiceServlet implements
 	@Override
 	public byte[] downloadBook(long sessionId, String bookId)
 			throws BadDataException {
-		checkPermission(sessionId, "read");
 		initBookMaker();
 		byte[] data = bookMaker.getPersistence().loadBookData(bookId);
 		return data;
@@ -94,19 +122,33 @@ public class BookServiceImpl extends RemoteServiceServlet implements
 		bookMaker.abort(bookId);
 	}
 
+	public boolean validateSessionId(long sessionId) {
+		boolean result = false;
+		try {
+			checkPermission(sessionId, null);
+			result = true;
+		} catch (BadDataException ex) {
+			// do nothing
+		}
+		return result;
+	}
+	
 	@Override
-	public long login(String userName, String password) {
+	public User login(String userName, String password) {
 		initBookMaker();
-		long sessionId = -1;
+		LogonUser result = null;
 		User user = bookMaker.getPersistence().getUser(userName);
 		if (user != null) {
 			// encrypt password and compare
 			String hash = hash(password);
 			if (hash.equals(user.getPassword())) {
-				sessionId = System.currentTimeMillis();
+				long sessionId = System.currentTimeMillis();
+				result = new LogonUser(user);
+				result.getUser().setSessionId(sessionId);
 				synchronized (sessionMap) {
-					sessionMap.put(sessionId, System.currentTimeMillis());
+					sessionMap.put(sessionId, result);
 				}
+				log.info(result.getUser().getName() + " has logged in, sessionId: " + result.getUser().getSessionId());				
 			} else {
 				log.log(Level.INFO, userName + " has attempted to log in with wrong password!"
 						+ ", password:" + password
@@ -114,8 +156,7 @@ public class BookServiceImpl extends RemoteServiceServlet implements
 						+ ", expected hashPassword: " + user.getPassword());
 			}
 		}
-
-		return sessionId;
+		return (result != null ? result.getUser() : null);
 	}
 
 	@Override
@@ -127,13 +168,28 @@ public class BookServiceImpl extends RemoteServiceServlet implements
 
 	private void checkPermission(long sessionId, String permission)
 			throws BadDataException {
-		if (!permission.equals("read")) {
-			synchronized (sessionMap) {
-				if (sessionMap.get(sessionId) == null) {
-					throw new BadDataException("Not login!");
+		synchronized (sessionMap) {
+			// remove expired session Id
+			Iterator<Entry<Long, LogonUser>> iter = sessionMap.entrySet().iterator();
+			while (iter.hasNext()) {
+				Entry<Long, LogonUser> entry = iter.next();
+				if (System.currentTimeMillis() - entry.getValue().getLastAccessTime() >= SESSION_TIMEOUT_MS) {
+					log.info("remove expired session: " + entry.getKey() + "/" + entry.getValue().getUser().getName());
+					iter.remove();
 				}
-			}
-		}
+			}			
+			//log.info("#sessions in cache: " + sessionMap.size());
+			LogonUser user = sessionMap.get(sessionId);
+			if (user == null) {
+				throw new BadDataException("Session " + sessionId + " has expired or is not valid!");
+			} else {
+				user.setLastAccessTime(System.currentTimeMillis());
+				sessionMap.put(sessionId, user);
+				if (permission != null && permission.startsWith("script") && !user.getUser().getRole().equals("administrator")) {
+					throw new BadDataException("User does not have required permissions!");
+				}
+			}				
+		}		
 	}
 
 	private void initBookMaker() {
@@ -165,7 +221,7 @@ public class BookServiceImpl extends RemoteServiceServlet implements
 			bookMaker.getPersistence().saveUser(dad);
 		}
 	}
-
+	
 	private String hash(String str) {
 		byte[] hash;
 		try {
@@ -178,4 +234,22 @@ public class BookServiceImpl extends RemoteServiceServlet implements
 		return str;
 	}
 
+	private class LogonUser {
+		private long lastAccessTime;
+		private User user;
+		
+		public LogonUser(User user) {
+			this.user = user;
+			lastAccessTime = System.currentTimeMillis();
+		}
+		public long getLastAccessTime() {
+			return lastAccessTime;
+		}
+		public void setLastAccessTime(long lastAccessTime) {
+			this.lastAccessTime = lastAccessTime;
+		}		
+		public User getUser() {
+			return user;
+		}
+	}
 }

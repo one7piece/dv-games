@@ -2,7 +2,7 @@ package com.dv.gtusach.client;
 
 import com.dv.gtusach.client.mvp.AppActivityMapper;
 import com.dv.gtusach.client.mvp.AppPlaceHistoryMapper;
-import com.dv.gtusach.client.place.LogonPlace;
+import com.dv.gtusach.client.place.MainPlace;
 import com.google.gwt.activity.shared.ActivityManager;
 import com.google.gwt.activity.shared.ActivityMapper;
 import com.google.gwt.core.client.EntryPoint;
@@ -18,7 +18,7 @@ import com.google.web.bindery.event.shared.EventBus;
  * Entry point classes define <code>onModuleLoad()</code>.
  */
 public class GTusach implements EntryPoint {
-	private Place defaultPlace = new LogonPlace("logon");
+	private Place defaultPlace = new MainPlace("main");
 	private SimplePanel appWidget = new SimplePanel();
 	
 	/**
