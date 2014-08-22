@@ -82,7 +82,7 @@ public class GAEPersistence extends Persistence implements Serializable {
     	result.setScriptLastUpdateTime((Date)entity.getProperty("scriptLastUpdateTime"));
     	String s = (String)entity.getProperty("editingScript");
     	result.setEditingScript(s != null && s.equalsIgnoreCase("true"));
-      log.info("loaded system info: " + result);
+      //log.info("loaded system info: " + result);
     } else {
     	result = new SystemInfo();
     	Date now = new Date();

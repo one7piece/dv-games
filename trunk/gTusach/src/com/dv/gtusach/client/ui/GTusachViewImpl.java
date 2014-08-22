@@ -237,6 +237,7 @@ public class GTusachViewImpl extends Composite implements GTusachView, ClickHand
 			deleteCancelButton.setEnabled(scriptMode != ScriptModeEnum.SAVING);				
 			textDomainName.setEnabled(scriptMode == ScriptModeEnum.EDITING);
 			scriptTextArea.setEnabled(scriptMode == ScriptModeEnum.EDITING);
+			scriptTextArea.getElement().setAttribute("wrap", "off");
 			
 			if (scriptMode != ScriptModeEnum.SAVING) {				
 				if (scriptMode == ScriptModeEnum.VIEWING) {			
