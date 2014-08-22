@@ -122,13 +122,16 @@ public class BookServiceImpl extends RemoteServiceServlet implements
 		bookMaker.abort(bookId);
 	}
 
-	public boolean validateSessionId(long sessionId) {
-		boolean result = false;
+	@Override
+	public User getLogonUser(long sessionId) {
+		User result = null;
 		try {
-			checkPermission(sessionId, null);
-			result = true;
+			LogonUser user = checkPermission(sessionId, null);
+			if (user != null) {
+				result = user.getUser();
+			}
 		} catch (BadDataException ex) {
-			// do nothing
+			// session has expired or user is not logged in
 		}
 		return result;
 	}
@@ -166,7 +169,7 @@ public class BookServiceImpl extends RemoteServiceServlet implements
 		}
 	}
 
-	private void checkPermission(long sessionId, String permission)
+	private LogonUser checkPermission(long sessionId, String permission)
 			throws BadDataException {
 		synchronized (sessionMap) {
 			// remove expired session Id
@@ -188,7 +191,8 @@ public class BookServiceImpl extends RemoteServiceServlet implements
 				if (permission != null && permission.startsWith("script") && !user.getUser().getRole().equals("administrator")) {
 					throw new BadDataException("User does not have required permissions!");
 				}
-			}				
+			}	
+			return user;
 		}		
 	}
 

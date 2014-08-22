@@ -1,20 +1,16 @@
 package com.dv.gtusach.server.common;
 
-import java.net.Authenticator;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.PasswordAuthentication;
-import java.net.Proxy;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.script.Invocable;
-import javax.script.ScriptEngine;
-import javax.script.ScriptEngineManager;
-import javax.script.ScriptException;
+import org.mozilla.javascript.Context;
+import org.mozilla.javascript.Function;
+import org.mozilla.javascript.ImporterTopLevel;
+import org.mozilla.javascript.NativeJavaObject;
+import org.mozilla.javascript.Script;
+import org.mozilla.javascript.Scriptable;
+import org.mozilla.javascript.ScriptableObject;
 
 import com.dv.gtusach.shared.BadDataException;
 
@@ -27,40 +23,41 @@ public class BookParser {
   protected SiteConfiguration siteConfiguration;
   protected String bookTemplate = "";
   protected String domainName;
-  private ScriptEngine engine;
   private String error;
   private String[] scripts = new String[0];
-  private ScriptException scriptError;
+  private Script compiledScript;
+  private Exception scriptError;
   
   public BookParser() {
     siteConfiguration = new SiteConfiguration();
-    siteConfiguration.setProxy(getProxy());
     httpService = new HttpService();
-		ScriptEngineManager manager = new ScriptEngineManager();
-		engine = manager.getEngineByName("JavaScript");
-		if (engine == null) {
-			throw new RuntimeException("No javascript engine!");
-		}
   }
   
-  public void init(String domainName, String[] scripts) throws ScriptException {
+  public void init(String domainName, String[] scripts) throws BadDataException {
   	this.domainName = domainName;
   	if (!Arrays.equals(this.scripts, scripts)) {
-  		log.info("BookParser.init() - " + domainName + ", re-evaluating scripts...");
+  		log.info("BookParser.init() - " + domainName + ", re-compiling scripts...");
   		try {
+  			compiledScript = null;
   			scriptError = null;
+  			StringBuffer buf = new StringBuffer(); 
       	for (String script: scripts) {
-        	engine.eval(script);  	
+      		buf.append(script);
       	}
-  		} catch (ScriptException ex) {
-  			log.log(Level.SEVERE, "Parser script error: " + ex.getMessage());
+    		Context ctx = Context.enter();
+  			compiledScript = ctx.compileString(buf.toString(), domainName, 1, null);      	
+  		} catch (Exception ex) {
   			scriptError = ex;
-  			throw ex;  			
+  			compiledScript = null;
+  			log.log(Level.SEVERE, "Parser script compile error: " + ex.getMessage());
+  			throw new BadDataException(ex.getMessage());  			
+  		} finally {
+  			Context.exit();
   		}
   	}
   }
   
-  public ScriptException getScriptError() {
+  public Exception getScriptError() {
   	return scriptError;
   }
   
@@ -75,7 +72,7 @@ public class BookParser {
   public String getUrl(String target, String request) {
     return httpService.getUrl(target, request);
   }
-  
+    
   public byte[] loadResource(String url) {
     return httpService.executeRequest(url, siteConfiguration);
   }
@@ -87,8 +84,12 @@ public class BookParser {
   public SiteConfiguration getSiteConfiguration() {
     return siteConfiguration;
   }
-      
-  public String getBookTemplate() {
+  
+  public HttpService getHttpService() {
+		return httpService;
+	}
+
+	public String getBookTemplate() {
     return bookTemplate;
   }
   public void setBookTemplate(String bookTemplate) {
@@ -127,107 +128,75 @@ public class BookParser {
   }
     
   public ChapterHtml extractChapterHtml(String target, String request, String rawChapterHtml) throws BadDataException {
-  	if (scriptError != null) {
-  		throw new BadDataException(scriptError.getClass() + ": " + scriptError.getMessage());
+  	Object retval = executeJSFunction("extractChapterHtml", new Object[] {target, request, rawChapterHtml});
+  	if (!(retval instanceof ChapterHtml)) {
+  		throw new BadDataException("extractChapterHtml() - Bad value return from javascript: " + retval);
   	}
-  	
-  	ChapterHtml result = null;
-  	try {
-			Invocable inv = (Invocable)engine;
-			setError(null);
-			Object retval = inv.invokeFunction("extractChapterHtml", target, request, rawChapterHtml);
-			if (error != null) {
-				throw new BadDataException(error);
-			}
-			if (retval instanceof ChapterHtml) {
-				result = (ChapterHtml)retval;
-			} else {
-				throw new BadDataException("extractChapterHtml() - Bad value return from javascript: " + retval);
-			}
-  	} catch (ScriptException ex) {
-			throw new BadDataException("extractChapterHtml() - Script error! " + ex.getMessage());
-  	} catch (NoSuchMethodException ex) {
-			throw new BadDataException("extractChapterHtml() - Script error! " + ex.getMessage());
-		}
-  	return result;
+  	return (ChapterHtml)retval;
   }
   
   public String getNextPageUrl(String target, String currentPageURL, String rawChapterHtml) {
-  	if (scriptError != null) {
-  		return null;
-  	}
-  	
   	String result = null;
   	try {
-			Invocable inv = (Invocable)engine;
-			setError(null);
-			Object retval = inv.invokeFunction("getNextPageUrl", target, currentPageURL, rawChapterHtml);
-			if (error != null) {
-				log.log(Level.WARNING, error);
-				return null;
-			}
-			if (retval instanceof String) {
-				result = (String)retval;
-			} else {
-				log.log(Level.WARNING, "getNextPageUrl() - Bad value return from javascript: " + retval);
-				return null;
-			}
-  	} catch (ScriptException ex) {
-  		log.log(Level.WARNING, "getNextPageUrl - Script error! " + ex.getMessage());
-  	} catch (NoSuchMethodException ex) {
+    	Object retval = executeJSFunction("getNextPageUrl", new Object[] {target, currentPageURL, rawChapterHtml});
+    	if (retval != null && !(retval instanceof String)) {
+    		throw new BadDataException("Bad value return from javascript: " + retval);
+    	}
+    	result = (String)retval;  		
+  	} catch (Exception ex) {
   		log.log(Level.WARNING, "getNextPageUrl - Script error! " + ex.getMessage());
 		}
   	return result;
   }
   
   public String getChapterTitle(String rawHtml, String formatHtml) {
-  	if (scriptError != null) {
-  		return null;
-  	}
-  	
   	String result = null;
   	try {
-			Invocable inv = (Invocable)engine;
-			setError(null);
-			Object retval = inv.invokeFunction("getChapterTitle", rawHtml, formatHtml);
-			if (error != null) {
-				log.log(Level.WARNING, error);
-				return null;
-			}
-			if (retval instanceof String) {
-				result = (String)retval;
-			} else {
-				log.log(Level.WARNING, "getChapterTitle() - Bad value return from javascript: " + retval);
-				return null;
-			}
-  	} catch (ScriptException ex) {
-  		log.log(Level.WARNING, "getChapterTitle() - Script error! " + ex.getMessage());
-  	} catch (NoSuchMethodException ex) {
-  		log.log(Level.WARNING, "getChapterTitle() - Script error! " + ex.getMessage());
+    	Object retval = executeJSFunction("getChapterTitle", new Object[] {rawHtml, formatHtml});
+    	if (retval != null && !(retval instanceof String)) {
+    		throw new BadDataException("Bad value return from javascript: " + retval);
+    	}
+    	result = (String)retval;  		
+  	} catch (Exception ex) {
+  		log.log(Level.WARNING, "getChapterTitle - Script error! " + ex.getMessage());
 		}
   	return result;
   }
-
-  public Proxy getProxy() {
-    Proxy proxy = null;
-    try {
-      String hostname = InetAddress.getLocalHost().getHostName();
-      if (InetAddress.getLocalHost().getHostAddress().startsWith("10.45")) {
-        proxy = new Proxy(Proxy.Type.HTTP, new InetSocketAddress("Zen.tyco.com.au", 9400));
-        //proxy = new HttpHost("Zen.tyco.com.au", 9400, "http");
-        Authenticator authenticator = new Authenticator() {
-          public PasswordAuthentication getPasswordAuthentication() {
-            return (new PasswordAuthentication("dvan", "Spidey56".toCharArray()));
-          }
-        };
-        Authenticator.setDefault(authenticator);       
-      }
-    } catch (Exception ex) {
-      log.log(Level.WARNING, "Error creating proxy", ex);
-    }
-    return proxy;
-  }
   
+  private Object executeJSFunction(String functionName, Object[] args) throws BadDataException {
+  	if (scriptError != null) {
+  		throw new BadDataException(scriptError.getClass() + ": " + scriptError.getMessage());
+  	}
+  	
+  	Context ctx = Context.enter();
+  	try {
+  		Scriptable scope = new ImporterTopLevel(ctx);  		
+  		compiledScript.exec(ctx, scope);
+  		// set global variable context pointing to this isntance
+  		Object wrappedThis = Context.javaToJS(this, scope);
+			ScriptableObject.putProperty(scope, "context", wrappedThis);
+  		  		
+			setError(null);
+			Object fct = scope.get(functionName, scope);
+			if (!(fct instanceof Function)){
+				throw new BadDataException("Function " + functionName + " is not defined!");
+			}
+			Object retval = ((Function)fct).call(ctx, scope, scope, args);			
+			if (error != null) {
+				throw new BadDataException(error);
+			}
+			if (retval instanceof NativeJavaObject) {
+				return ((NativeJavaObject)retval).unwrap();
+			}
+			return retval;						
+  	} catch (BadDataException ex) {
+  		throw ex;
+  	} catch (Exception ex) {
+			throw new BadDataException("extractChapterHtml() - Script error! " + ex.getMessage());
+		} finally {
+			Context.exit();
+		}
+  }
   
 /*    
   protected void extractNodeText(Node node, StringBuffer buffer) {

@@ -101,8 +101,8 @@
 							<g:Button ui:field="deleteCancelButton" addStyleNames="{style.button}">Delete</g:Button>
 						</g:HorizontalPanel>							
 					</g:VerticalPanel>					
-					<g:ScrollPanel ui:field="scriptScrollPanel">
-						<g:TextArea ui:field="scriptTextArea" width="500px" height="200px" characterWidth="80" styleName="{style.scriptTextArea}"/>
+					<g:ScrollPanel ui:field="scriptScrollPanel" width="99%">
+						<g:TextArea ui:field="scriptTextArea" height="200px" characterWidth="100" styleName="{style.scriptTextArea}"/>
 					</g:ScrollPanel>											
 					</g:HorizontalPanel>
 				</g:DisclosurePanel>

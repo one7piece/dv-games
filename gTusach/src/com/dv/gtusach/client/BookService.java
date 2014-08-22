@@ -20,7 +20,7 @@ public interface BookService extends RemoteService {
 	void abortBook(long sessionId, String bookId) throws BadDataException;
 	User login(String userName, String password);
 	void logout(long sessionId);
-	boolean validateSessionId(long sessionId);
+	User getLogonUser(long sessionId);
 	ParserScript[] getParserScripts(long sessionId) throws BadDataException;
 	ParserScript saveParserScript(long sessionId, ParserScript script) throws BadDataException;
 	void deleteParserScript(long sessionId, String scriptId) throws BadDataException;

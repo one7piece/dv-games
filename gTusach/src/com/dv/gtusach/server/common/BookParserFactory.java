@@ -5,8 +5,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 
-import javax.script.ScriptException;
-
+import com.dv.gtusach.shared.BadDataException;
 import com.dv.gtusach.shared.ParserScript;
 import com.dv.gtusach.shared.SystemInfo;
 
@@ -23,7 +22,7 @@ public class BookParserFactory {
 		return instance;
 	}
 	
-	public BookParser getParser(Persistence persistence, String domain) throws ScriptException {
+	public BookParser getParser(Persistence persistence, String domain) throws BadDataException {
 		SystemInfo info = persistence.getSystemInfo();
 		if (!info.isEditingScript()) {
 			if (lastUpdateTime == null || (info.getScriptLastUpdateTime() != null 
@@ -45,7 +44,7 @@ public class BookParserFactory {
 		return result;					
 	}
 	
-	private BookParser getParser(String url) throws ScriptException {
+	private BookParser getParser(String url) throws BadDataException {
 		ParserScript common = null;
 		ParserScript script = null;
 		for (ParserScript s: scripts) {

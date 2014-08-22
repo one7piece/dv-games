@@ -21,8 +21,6 @@ public interface BookServiceAsync {
 	void login(String userName, String password, AsyncCallback<User> callback);
 	void logout(long sessionId, AsyncCallback<Void> callback);
 
-	void validateSessionId(long sessionId, AsyncCallback<Boolean> callback);
-
 	void getParserScripts(long sessionId, AsyncCallback<ParserScript[]> callback);
 
 	void saveParserScript(long sessionId, ParserScript script,
@@ -30,4 +28,6 @@ public interface BookServiceAsync {
 
 	void deleteParserScript(long sessionId, String scriptId,
 			AsyncCallback<Void> callback);
+
+	void getLogonUser(long sessionId, AsyncCallback<User> callback);
 }

@@ -20,6 +20,7 @@ import com.dv.gtusach.shared.User.PermissionEnum;
 import com.google.gwt.activity.shared.AbstractActivity;
 import com.google.gwt.event.shared.EventBus;
 import com.google.gwt.place.shared.Place;
+import com.google.gwt.user.client.Cookies;
 import com.google.gwt.user.client.Timer;
 import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.rpc.AsyncCallback;
@@ -28,6 +29,7 @@ import com.google.gwt.user.client.ui.AcceptsOneWidget;
 public class MainActivity extends AbstractActivity implements
 		GTusachView.Presenter {
 
+	private final long SESSION_EXPIRE_TIME = 1000*60*60*24*14;
 	// Used to obtain views, eventBus, placeController
 	// Alternatively, could be injected via GIN
 	private ClientFactory clientFactory;
@@ -52,6 +54,31 @@ public class MainActivity extends AbstractActivity implements
 		
 		containerWidget.setWidget(tusachView.asWidget());
 		
+		String sid = Cookies.getCookie("sid");
+		if (sid != null) {
+			try {
+				long sessionId = Long.parseLong(sid);
+				// retrieve the user info from session id
+				AsyncCallback<User> callback = new AsyncCallback<User>() {
+					@Override
+					public void onFailure(Throwable caught) {
+					}
+
+					@Override
+					public void onSuccess(User result) {
+						if (result != null) {
+							// session has expired
+							clientFactory.getUser().update(result);
+							fireEvent(EventTypeEnum.Authentication, "login", clientFactory.getUser());  
+						}
+					}
+				};
+				clientFactory.getBookService().getLogonUser(sessionId, callback);			
+			} catch (Exception ex) {
+				// ignore
+			}			
+		}
+		
 		loadBooks(new String[0]);
 
 		if (refreshTimer != null && refreshTimer.isRunning()) {
@@ -71,7 +98,7 @@ public class MainActivity extends AbstractActivity implements
 				// pass on event, except for login error
 				tusachView.onPropertyChanged(event);
 			}			
-		});
+		});		
 	}
 
 	/**
@@ -182,14 +209,14 @@ public class MainActivity extends AbstractActivity implements
 	
 	private void validateSession() {
 		if (clientFactory.getUser().getSessionId() > 0) {
-			AsyncCallback<Boolean> callback = new AsyncCallback<Boolean>() {
+			AsyncCallback<User> callback = new AsyncCallback<User>() {
 				@Override
 				public void onFailure(Throwable caught) {
 				}
 
 				@Override
-				public void onSuccess(Boolean result) {
-					if (!result) {
+				public void onSuccess(User result) {
+					if (result == null) {
 						// session has expired
 						clientFactory.getUser().setSessionId(-1);
 						tusachView.setErrorMessage("Session has expired!");
@@ -197,7 +224,7 @@ public class MainActivity extends AbstractActivity implements
 					}
 				}
 			};
-			clientFactory.getBookService().validateSessionId(clientFactory.getUser().getSessionId(), callback);
+			clientFactory.getBookService().getLogonUser(clientFactory.getUser().getSessionId(), callback);
 		}
 	}
 	
@@ -301,6 +328,8 @@ public class MainActivity extends AbstractActivity implements
 			public void onSuccess(User user) {
 				if (user != null) {
 					clientFactory.getUser().update(user);
+					// store in cookie
+			    Cookies.setCookie("sid", ""+user.getSessionId());					
 					boolean isAdmin = (user != null && user.getSessionId() > 0 
 							&& user.getRole().contains("admin"));
 					if (isAdmin) {

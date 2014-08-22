@@ -4,13 +4,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import javax.script.ScriptException;
 
 import nl.siegmann.epublib.domain.Author;
 import nl.siegmann.epublib.domain.Resource;
@@ -20,7 +16,6 @@ import nl.siegmann.epublib.service.MediatypeService;
 import com.dv.gtusach.shared.BadDataException;
 import com.dv.gtusach.shared.Book;
 import com.dv.gtusach.shared.Book.BookStatus;
-import com.dv.gtusach.shared.ParserScript;
 
 public abstract class BookMaker {
   private static final int MAX_PENDING_BOOKS = 3;
@@ -31,12 +26,7 @@ public abstract class BookMaker {
   }
       
   private BookParser findParser(String url) throws BadDataException {
-  	BookParser result = null;
-		try {
-			result = BookParserFactory.getInstance().getParser(getPersistence(), url);
-		} catch (ScriptException e) {
-			throw new BadDataException("Parser script error! " + e.getMessage());
-		}
+  	BookParser result = BookParserFactory.getInstance().getParser(getPersistence(), url);
     if (result != null) {
     	if (result.getScriptError() != null) {
   			throw new BadDataException("Parser script error! " + result.getScriptError().getMessage());
@@ -180,8 +170,8 @@ public abstract class BookMaker {
             chapterHtml.setChapterNo(chapterNo);
             chapterHtml.setChapterTitle(parser.getChapterTitle(rawChapterHtml, chapterHtml.getHtml()));
             if (count == 0 && (chapterHtml.getChapterTitle() == null || chapterHtml.getChapterTitle().length() == 0)) {
-              log.info("Cannot parse chapter title. Raw Chapter\n" 
-                  + rawChapterHtml + "\nFormat Chapter\n" + chapterHtml.getHtml());
+              //log.info("Cannot parse chapter title. Raw Chapter\n" 
+              //    + rawChapterHtml + "\nFormat Chapter\n" + chapterHtml.getHtml());
             }
             getPersistence().saveChapter(chapterHtml);
             //chapters.add(chapterHtml);
