@@ -1,7 +1,6 @@
 package com.dv.gtusach.client.ui;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -9,10 +8,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.logging.Logger;
 
-import com.dv.gtusach.client.event.AuthenticationEvent;
 import com.dv.gtusach.client.event.PropertyChangeEvent;
-import com.dv.gtusach.client.event.AuthenticationEvent.AuthenticationTypeEnum;
 import com.dv.gtusach.client.event.PropertyChangeEvent.EventTypeEnum;
 import com.dv.gtusach.shared.BadDataException;
 import com.dv.gtusach.shared.Book;
@@ -24,8 +22,6 @@ import com.google.gwt.core.client.GWT;
 import com.google.gwt.dom.client.Style.Cursor;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
-import com.google.gwt.event.dom.client.KeyCodes;
-import com.google.gwt.event.dom.client.KeyPressEvent;
 import com.google.gwt.event.logical.shared.CloseEvent;
 import com.google.gwt.event.logical.shared.CloseHandler;
 import com.google.gwt.event.logical.shared.OpenEvent;
@@ -34,7 +30,6 @@ import com.google.gwt.event.logical.shared.ResizeEvent;
 import com.google.gwt.event.logical.shared.ResizeHandler;
 import com.google.gwt.uibinder.client.UiBinder;
 import com.google.gwt.uibinder.client.UiField;
-import com.google.gwt.uibinder.client.UiHandler;
 import com.google.gwt.user.client.Timer;
 import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.ui.Anchor;
@@ -53,6 +48,7 @@ import com.google.gwt.user.client.ui.TextBox;
 import com.google.gwt.user.client.ui.Widget;
 
 public class GTusachViewImpl extends Composite implements GTusachView, ClickHandler {
+	static Logger log = Logger.getLogger("GTusachViewImpl");
 	public static enum ScriptModeEnum {
 		VIEWING,
 		EDITING,
@@ -113,6 +109,7 @@ public class GTusachViewImpl extends Composite implements GTusachView, ClickHand
 		initWidget(uiBinder.createAndBindUi(this));
 		
 		initProfilePanel();
+		profilePanel.setOpen(true);
 		
 		initCreatePanel();
 
@@ -162,8 +159,7 @@ public class GTusachViewImpl extends Composite implements GTusachView, ClickHand
 			public void onResize(ResizeEvent event) {
 				resizeTimer.cancel();
 				resizeTimer.schedule(250);
-			}
-			
+			}			
 		});
 	}
 	
@@ -259,12 +255,15 @@ public class GTusachViewImpl extends Composite implements GTusachView, ClickHand
 		bookListTable.setText(0, 0, "");
 		bookListTable.getColumnFormatter().setWidth(0, "50px");
 		bookListTable.setText(0, 1, "Title");
+		bookListTable.getColumnFormatter().setWidth(1, "100px");
 		bookListTable.setText(0, 2, "Status");
 		bookListTable.getColumnFormatter().setWidth(2, "50px");
 		bookListTable.setText(0, 3, "#Pages");
 		bookListTable.getColumnFormatter().setWidth(3, "50px");
 		bookListTable.setText(0, 4, "Date");
+		//bookListTable.getColumnFormatter().setWidth(4, "50px");
 		bookListTable.setText(0, 5, "Error Message");
+		bookListTable.setText(0, 6, "Current Page URL");
 
 		// Add styles to elements in the stock list table.
 		bookListTable.setCellPadding(5);
@@ -305,6 +304,7 @@ public class GTusachViewImpl extends Composite implements GTusachView, ClickHand
 		bookListTable.setText(row, 3, book.getPages());
 		bookListTable.setText(row, 4, book.getLastUpdatedTime().toString());
 		bookListTable.setText(row, 5, book.getErrorMsg());
+		bookListTable.setText(row, 6, book.getCurrentPageUrl());
 	}
 
 	private Widget createImageWidget(int row, String bookId, ActionEnum action,
@@ -347,7 +347,9 @@ public class GTusachViewImpl extends Composite implements GTusachView, ClickHand
 				listener.resume(bookId);
 				break;
 			case Delete:
-				listener.delete(bookId);
+				if (Window.confirm("Are you sure you want to delete this book?")) {
+					listener.delete(bookId);
+				}
 				break;
 			case Abort:
 				listener.abort(bookId);
@@ -393,8 +395,10 @@ public class GTusachViewImpl extends Composite implements GTusachView, ClickHand
 			}
 			// delete current script			
 		} else if (event.getSource().equals(chkScriptList)) {
+			log.info("selected script index: " + chkScriptList.getSelectedIndex());
 			if (chkScriptList.getSelectedIndex() != -1) {
 				currentScript = scripts.get(chkScriptList.getSelectedIndex());
+				log.info("selected script: " + currentScript);
 				textDomainName.setText(currentScript.getDomainName());
 				scriptTextArea.setText(currentScript.getScript());
 			} else {

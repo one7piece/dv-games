@@ -23,7 +23,8 @@ function getNextPageUrl(target, currentPageURL, rawChapterHtml) {
     }
   }
   logInfo("found next page url: " + result + ", current page URL: " + currentPageURL);
-  if (result != null && currentPageURL != null && result.equals(currentPageURL)) {
+  if (result != null && currentPageURL != null 
+  		&& (result.indexOf(currentPageURL) != -1 || currentPageURL.indexOf(result) != -1)) {
     logInfo("Bad html causing infinite loop!!!\n");
     result = null;
   } 

@@ -39,7 +39,7 @@ public abstract class BookMaker {
   protected String getTemplateHtml() {
     if (templateHtml == null) {
       try {
-        log.info("loading template.html...");
+        //log.info("loading template.html...");
         byte[] buf = loadResource("template.html");
         if (buf == null) {
           throw new RuntimeException("Cannot find template file: template.html");
@@ -147,7 +147,7 @@ public abstract class BookMaker {
       
       try {
         for (int i=0; i<numPages && !completed; i++) {        
-          log.info("loading page: " + (book.getCurrentPageNo()+1) + ", numPages=" + numPages);
+          //log.info("loading page: " + (book.getCurrentPageNo()+1) + ", numPages=" + numPages);
           String rawChapterHtml = parser.executeRequest(target, request);
           if (rawChapterHtml == null || rawChapterHtml.length() == 0) {
             throw new BadDataException("Failed to loaded chapter html from target=" + target 
@@ -185,7 +185,7 @@ public abstract class BookMaker {
           
           // get the next page
           String nextPageUrl = parser.getNextPageUrl(target, request, rawChapterHtml);
-          if (nextPageUrl != null && nextPageUrl.toLowerCase().indexOf(target.toLowerCase()) != -1) {
+          if (nextPageUrl != null && nextPageUrl.toLowerCase().startsWith("http")) {
             request = parser.getRequestUrl(nextPageUrl);
           } else {
             request = nextPageUrl;
@@ -228,9 +228,10 @@ public abstract class BookMaker {
         }
       }
   	} catch (Throwable ex) {
-      log.log(Level.WARNING, "Error creating pages.", ex);
+  		log.log(Level.WARNING, "Error creating pages.", ex);
       book.setErrorMsg(ex.getClass().getName() + ":" + ex.getMessage());
       book.setStatus(BookStatus.ERROR);
+      getPersistence().saveBook(book);
   	}
   }
   
