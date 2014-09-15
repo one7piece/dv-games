@@ -17,7 +17,7 @@ import com.dv.gtusach.shared.BadDataException;
 public class BookParser {
   protected static final Logger log = Logger.getLogger(BookParser.class.getCanonicalName());
   
-  static String[] DOMAIN_NAMES = {".com/", ".name/", ".info/", ".org/", ".vn/"};
+  static String[] DOMAIN_NAMES = {".com/", ".name/", ".info/", ".org/", ".vn/", ".co/"};
     
   protected HttpService httpService;
   protected SiteConfiguration siteConfiguration;
@@ -97,6 +97,9 @@ public class BookParser {
   }  
   
   public String getTargetUrl(String pUrl) {
+  	if (pUrl == null) {
+  		return null;
+  	}
     for (String name: DOMAIN_NAMES) {
       int index = pUrl.toLowerCase().indexOf(name);
       if (index != -1) {
@@ -110,6 +113,9 @@ public class BookParser {
   }
   
   public String getRequestUrl(String pUrl) {
+  	if (pUrl == null) {
+  		return null;
+  	}
     String target = getTargetUrl(pUrl);
     if (target != null) {
       if (target.equalsIgnoreCase(pUrl)) {

@@ -148,7 +148,7 @@ public class GAEPersistence extends Persistence implements Serializable {
 
       DatastoreService datastore = DatastoreServiceFactory.getDatastoreService();
       Key key = datastore.put(entity);
-      log.log(Level.INFO, "Saved script: " + script);
+      //log.log(Level.INFO, "Saved script: " + script);
       script.setId(KeyFactory.keyToString(key));
       
       systemInfo.setScriptLastUpdateTime(now);
@@ -187,7 +187,7 @@ public class GAEPersistence extends Persistence implements Serializable {
     	script.setId(KeyFactory.keyToString(entity.getKey()));
     	script.setDomainName((String) entity.getProperty("domainName"));
     	script.setScript(((Text) entity.getProperty("script")).getValue());
-      log.info("loaded script: " + script);
+      //log.info("loaded script: " + script);
     	return script;
     }
     return null;
@@ -195,7 +195,7 @@ public class GAEPersistence extends Persistence implements Serializable {
 		
 	@Override
 	public List<ParserScript> getScripts(Date timestamp) {
-    log.info("get scripts after: " + timestamp);
+    //log.info("get scripts after: " + timestamp);
 		List<ParserScript> result = new ArrayList<ParserScript>();			
     Query query = new Query(SCRIPT_KIND, getLibraryKey());
     if (timestamp != null) {
@@ -209,7 +209,7 @@ public class GAEPersistence extends Persistence implements Serializable {
     	script.setId(KeyFactory.keyToString(entity.getKey()));
     	script.setDomainName((String) entity.getProperty("domainName"));
     	script.setScript(((Text) entity.getProperty("script")).getValue());
-      log.info("loaded script: " + script);
+      //log.info("loaded script: " + script);
       result.add(script);
     }
     return result;
@@ -259,7 +259,7 @@ public class GAEPersistence extends Persistence implements Serializable {
       user.setRole((String) entity.getProperty("role"));
       user.setPassword((String) entity.getProperty("password"));
       user.setLastLoginTime((Date)entity.getProperty("lastLoginTime"));
-      log.info("loaded user: " + user);
+      //log.info("loaded user: " + user);
     	return user;
     }
     return null;
@@ -267,7 +267,7 @@ public class GAEPersistence extends Persistence implements Serializable {
 	  
   @Override
   public void saveBook(Book book) {
-    log.info("saving book: " + book);
+    //log.info("saving book: " + book);
     Date now = new Date();
     try {
     	
@@ -296,7 +296,7 @@ public class GAEPersistence extends Persistence implements Serializable {
 
       DatastoreService datastore = DatastoreServiceFactory.getDatastoreService();
       Key key = datastore.put(entity);
-      log.log(Level.INFO, "Saved book key: " + key);
+      //log.log(Level.INFO, "Saved book key: " + key);
       book.setId(KeyFactory.keyToString(key));
       
       systemInfo.setBookLastUpdateTime(now);
@@ -354,10 +354,10 @@ public class GAEPersistence extends Persistence implements Serializable {
     Query query = new Query(BOOK_KIND, getLibraryKey());
     query.addSort("lastUpdatedTime", Query.SortDirection.DESCENDING);
     List<Entity> list = datastore.prepare(query).asList(FetchOptions.Builder.withLimit(500));
-    numBookReads++;
-    log.info("doLoadBooks() - Found " + list.size() + " books in library. numBookReads=" + numBookReads
-    		+ ", numChapterReads=" + numChapterReads + ", numAttachmentReads=" + numAttachmentReads
-    		+ ", numSectionReads=" + numSectionReads);
+    numBookReads++;    
+    //log.info("doLoadBooks() - Found " + list.size() + " books in library. numBookReads=" + numBookReads
+    //		+ ", numChapterReads=" + numChapterReads + ", numAttachmentReads=" + numAttachmentReads
+    //		+ ", numSectionReads=" + numSectionReads);
     List<Book> books = new ArrayList<Book>();
     for (Entity entity : list) {
       Book book = new Book();
@@ -432,7 +432,7 @@ public class GAEPersistence extends Persistence implements Serializable {
     Query query = new Query(CHAPTER_KIND, bookKey).setKeysOnly();
     //query.addSort("chapterNo", Query.SortDirection.ASCENDING);
     List<Entity> list = datastore.prepare(query).asList(fetchOptions);
-    log.info("Found " + list.size() + " chapter IDs for book: " + bookId);
+    //log.info("Found " + list.size() + " chapter IDs for book: " + bookId);
     List<Object> result = new ArrayList<Object>();
     for (Entity entity: list) {
     	result.add(KeyFactory.keyToString(entity.getKey()));    	
@@ -449,7 +449,7 @@ public class GAEPersistence extends Persistence implements Serializable {
     query.addSort("chapterNo", Query.SortDirection.ASCENDING);
     List<Entity> list = datastore.prepare(query).asList(fetchOptions);
     numChapterReads++;
-    log.info("Found " + list.size() + " chapters for book: " + bookId);
+    //log.info("Found " + list.size() + " chapters for book: " + bookId);
     List<ChapterHtml> chapters = new ArrayList<ChapterHtml>();
     for (Entity entity : list) {
       ChapterHtml chapter = new ChapterHtml();
@@ -501,7 +501,7 @@ public class GAEPersistence extends Persistence implements Serializable {
   @Override
   public void saveChapter(ChapterHtml chapter) {
     try {
-      log.info("Saving book chapter: " + chapter);
+      //log.info("Saving book chapter: " + chapter);
       if (chapter.getBookId() == null) {
         log.log(Level.WARNING, "Missing book id in chapter!");
         return;
@@ -517,7 +517,7 @@ public class GAEPersistence extends Persistence implements Serializable {
       DatastoreService datastore = DatastoreServiceFactory.getDatastoreService();
       Key chapterKey = datastore.put(chapterEntity);
       chapter.setId(KeyFactory.keyToString(chapterKey));
-      log.info("Saved book chapter key: " + chapterKey);
+      //log.info("Saved book chapter key: " + chapterKey);
 
       if (chapter.getAttachments().size() > 0) {
         List<Entity> attachmentEntities = new ArrayList<Entity>();
@@ -563,7 +563,7 @@ public class GAEPersistence extends Persistence implements Serializable {
     query.addSort("sectionNo", Query.SortDirection.ASCENDING);
     List<Entity> list = datastore.prepare(query).asList(FetchOptions.Builder.withLimit(5000).chunkSize(100));
     numSectionReads++;
-    log.info("Found " + list.size() + " sections for book: " + bookId);
+    //log.info("Found " + list.size() + " sections for book: " + bookId);
     List<SectionData> sections = new ArrayList<SectionData>();
     for (Entity entity : list) {
       SectionData section = new SectionData();
@@ -581,7 +581,7 @@ public class GAEPersistence extends Persistence implements Serializable {
 
   @Override
   public void saveBookData(Object bookId, byte[] data) {
-    log.info("Saved book data: " + bookId);
+    //log.info("Saved book data: " + bookId);
     DatastoreService datastore = DatastoreServiceFactory.getDatastoreService();
     // remove all old sections
     List<Key> keys = new ArrayList<Key>();
@@ -598,7 +598,7 @@ public class GAEPersistence extends Persistence implements Serializable {
       entity.setProperty("sectionNo", section.getSectionNo());
       entity.setProperty("data", new Blob(section.getData()));
       Key key = datastore.put(entity);
-      log.info("Saved book section key: " + key);
+      //log.info("Saved book section key: " + key);
       section.setId(KeyFactory.keyToString(key));
     }
   }
