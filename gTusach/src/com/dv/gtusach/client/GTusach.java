@@ -7,9 +7,13 @@ import com.google.gwt.activity.shared.ActivityManager;
 import com.google.gwt.activity.shared.ActivityMapper;
 import com.google.gwt.core.client.EntryPoint;
 import com.google.gwt.core.client.GWT;
+import com.google.gwt.dom.client.NativeEvent;
 import com.google.gwt.place.shared.Place;
 import com.google.gwt.place.shared.PlaceController;
 import com.google.gwt.place.shared.PlaceHistoryHandler;
+import com.google.gwt.user.client.Event;
+import com.google.gwt.user.client.Event.NativePreviewEvent;
+import com.google.gwt.user.client.Event.NativePreviewHandler;
 import com.google.gwt.user.client.ui.RootLayoutPanel;
 import com.google.gwt.user.client.ui.SimplePanel;
 import com.google.web.bindery.event.shared.EventBus;
@@ -17,7 +21,7 @@ import com.google.web.bindery.event.shared.EventBus;
 /**
  * Entry point classes define <code>onModuleLoad()</code>.
  */
-public class GTusach implements EntryPoint {
+public class GTusach implements EntryPoint, NativePreviewHandler {
 	private Place defaultPlace = new MainPlace("main");
 	private SimplePanel appWidget = new SimplePanel();
 	
@@ -47,6 +51,18 @@ public class GTusach implements EntryPoint {
 		// Goes to place represented on URL or default place
 		historyHandler.handleCurrentHistory();
 		
+		Event.addNativePreviewHandler(this);
 	}
 	
+	@Override
+	public void onPreviewNativeEvent(NativePreviewEvent event) {
+		switch (event.getTypeInt()) {
+		case Event.ONKEYDOWN:
+			NativeEvent nEvent = event.getNativeEvent();
+			if ((nEvent.getCtrlKey() && nEvent.getKeyCode() == 'R') || (nEvent.getKeyCode() == 116)) {					
+				nEvent.preventDefault();
+			}
+			break;
+		}
+	}			
 }
