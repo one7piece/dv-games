@@ -76,6 +76,17 @@ function findChapterTitle(html, regex) {
 function isValidChapterHtml(chapterHtml) {
 	// note: getHtml() return the java string (not javascript) so length() must be use
 	// instead of length
-	return (chapterHtml != null && chapterHtml.getHtml() != null)
+	var valid = (chapterHtml != null && chapterHtml.getHtml() != null)
 			&& (chapterHtml.getHtml().length() > 300 || chapterHtml.getAttachments().size() > 0);
+	if (valid) {
+		// strip out the embed tag
+		var doc = Jsoup.parse(chapterHtml.getHtml());
+    var list = doc.getElementsByTag("embed");
+    if (list.size() > 0) {
+      list.remove();
+      chapterHtml.setHtml(doc.toString());
+    }
+	}
+	
+	return valid;
 }
