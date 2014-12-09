@@ -50,7 +50,7 @@ function getDefaultChapterTitle(rawHtml, formatHtml) {
 
 function findChapterTitle(html, regex) {
 	var title = "";
-	var index0 = html.search("/" + regex);
+	var index0 = html.search(regex);
 	
 	if (index0 >= 0) {
 		//log.info("Found chapter prefix: " + regex + " at index: " + index0);

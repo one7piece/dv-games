@@ -11,6 +11,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import com.dv.gtusach.server.common.BookParser;
 import com.dv.gtusach.server.gae.BookMakerGAE;
+import com.dv.gtusach.shared.BadDataException;
 import com.dv.gtusach.shared.Book;
 import com.dv.gtusach.shared.Book.BookStatus;
 
@@ -63,11 +64,27 @@ public class CreateBookServlet extends HttpServlet {
     }
     bookMaker.setContext(getServletContext());
     Book book = bookMaker.getPersistence().findBook(bookId);
-    if (book != null) {    	
-      bookMaker.createPages(book, NUM_BATCH_PAGES);
-      if (book.getStatus() == BookStatus.WORKING) {
-        bookMaker.scheduleJob(book);
-      }          	
+    if (book != null) { 
+    	try {
+    		BookParser parser = bookMaker.findParser(book.getCurrentPageUrl());
+    		int batchSize = parser.getBatchSize();
+        bookMaker.createPages(book, batchSize);
+        if (book.getStatus() == BookStatus.WORKING) {
+					int sec = parser.getDelayTimeSec();
+					if (parser.getDelayTimeSec() > 0) {
+						log.info("Delaying for " + sec + " seconds before reading next batch");
+						try {
+							Thread.sleep(parser.getDelayTimeSec()*1000);
+						} catch (InterruptedException e) {
+						}
+					}
+        	
+          bookMaker.scheduleJob(book);
+        }          	
+    		
+			} catch (BadDataException e) {
+	      log.log(Level.WARNING, e.getMessage());
+			}    	
     } else {
       log.log(Level.WARNING, "Cannot find book: " + bookId);
     }

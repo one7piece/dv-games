@@ -5,20 +5,29 @@ importPackage(Packages.org.jsoup);
 importPackage(Packages.org.jsoup.nodes);
 importPackage(Packages.org.jsoup.select);
 
+function getBatchSize() {
+	return 100;
+}
+
+function getDelayTimeSec() {
+	return 10;
+}
+
 function getChapterTitle(rawHtml, formatHtml) {
   var result = "";
   if (formatHtml != null && formatHtml.length > 500) {
     try {
-      var index = rawHtml.indexOf("class=\"chi_tiet\"");
+      var index = rawHtml.indexOf("chi_tiet");
       var htmlList = new Array();
-      htmlList.push(formatHtml.substring(0, formatHtml.length > 1000 ? 1000 : formatHtml.length));
       if (index != -1) {
-        if (rawHtml.length > (index + 500)) {
-          htmlList.push(rawHtml.substring(0, index+500));
+        if (index > 500) {
+          htmlList.push(rawHtml.substring(index-500, index));
         } else {
           htmlList.push(rawHtml.substring(0, index));
-        }
-      } 
+        }        
+      } else {
+        htmlList.push(formatHtml.substring(0, formatHtml.length > 1000 ? 1000 : formatHtml.length));
+      }
                       
       for (var i=0; i<htmlList.length && result.length == 0; i++) {
         var html = htmlList[i];
