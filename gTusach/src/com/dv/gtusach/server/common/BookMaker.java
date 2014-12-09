@@ -25,7 +25,7 @@ public abstract class BookMaker {
   public BookMaker() {
   }
       
-  private BookParser findParser(String url) throws BadDataException {
+  public BookParser findParser(String url) throws BadDataException {
   	BookParser result = BookParserFactory.getInstance().getParser(getPersistence(), url);
     if (result != null) {
     	if (result.getScriptError() != null) {

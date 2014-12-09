@@ -5,6 +5,14 @@ importPackage(Packages.org.jsoup);
 importPackage(Packages.org.jsoup.nodes);
 importPackage(Packages.org.jsoup.select);
 
+function getBatchSize() {
+	return 100;
+}
+
+function getDelayTimeSec() {
+	return 10;
+}
+
 function getChapterTitle(rawHtml, formatHtml) {
 	return getDefaultChapterTitle(rawHtml, formatHtml);
 }

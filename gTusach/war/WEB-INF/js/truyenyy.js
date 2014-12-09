@@ -4,6 +4,14 @@ importPackage(Packages.org.jsoup);
 importPackage(Packages.org.jsoup.nodes);
 importPackage(Packages.org.jsoup.select);
 
+function getBatchSize() {
+	return 50;
+}
+
+function getDelayTimeSec() {
+	return 125;
+}
+
 function getChapterTitle(rawHtml, formatHtml) {
   var result = "";
   try {
@@ -47,10 +55,26 @@ function getNextPageUrl(target, currentPageURL, rawChapterHtml) {
   }
   
   logInfo("found next page url: " + result + ", current page URL: " + currentPageURL);
-  if (result != null && currentPageURL != null 
-  		&& (result.indexOf(currentPageURL) != -1 || currentPageURL.indexOf(result) != -1)) {
-    logError("Bad html causing infinite loop!!!\n");
-    result = null;
+  if (result != null && currentPageURL != null) {
+  	if (result.indexOf(currentPageURL) != -1 || currentPageURL.indexOf(result) != -1) {
+	    logError("Bad html causing infinite loop!!!\n");
+	    result = null;
+  	}
+		// check for same title
+  	var index1a = currentPageURL.indexOf("doc-truyen/");
+  	var index2a = result.indexOf("doc-truyen/");
+  	if (index1a != -1 && index2a != -1) {
+    	var index1b = currentPageURL.indexOf("/", index1a + "doc-truyen/".length);
+    	var index2b = result.indexOf("/", index2a + "doc-truyen/".length);  		
+    	if (index1b != -1 && index2b != -1 
+    			&& currentPageURL.substring(index1a, index1b) != result.substring(index2a, index2b)) {
+  	    logError("Bad next page URL, title mismatched!!! Dumped html:\n"
+  	    		+ "-------------------------------------------------"
+  	    		+ rawChapterHtml
+  	    		+ "-------------------------------------------------\n");
+  	    result = null;
+    	}
+  	}
   } 
   
   return result;
@@ -83,7 +107,7 @@ function extractChapterHtml(target, request, rawChapterHtml) {
   if (!isValidChapterHtml(chapterHtml)) {
   	throwError("No chapter content found in html");
   }
-                 
+         
   //log.info("Chapter data:\n----------------------\n" + chapterHtml + "\n----------------\n");
   return chapterHtml;
 }

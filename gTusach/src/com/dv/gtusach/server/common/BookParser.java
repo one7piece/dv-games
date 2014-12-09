@@ -140,6 +140,35 @@ public class BookParser {
   	}
   	return (ChapterHtml)retval;
   }
+
+  public int getBatchSize() {
+  	int result = 100;
+  	try {
+    	Object retval = executeJSFunction("getBatchSize", null);
+    	if (retval != null && (retval instanceof String || retval instanceof Number)) {
+    		Double d = Double.parseDouble("" + retval);
+    		result = d.intValue();
+    	}
+  	} catch (Exception ex) {
+  		log.log(Level.WARNING, "getBatchSize - Script error! " + ex.getMessage());
+		}
+  	return result;
+  }
+  
+  
+  public int getDelayTimeSec() {
+  	int result = 0;
+  	try {
+    	Object retval = executeJSFunction("getDelayTimeSec", null);
+    	if (retval != null && (retval instanceof String || retval instanceof Number)) {
+    		Double d = Double.parseDouble("" + retval);
+    		result = d.intValue();
+    	}
+  	} catch (Exception ex) {
+  		log.log(Level.WARNING, "getDelayTimeSec - Script error! " + ex.getMessage());
+		}
+  	return result;
+  }
   
   public String getNextPageUrl(String target, String currentPageURL, String rawChapterHtml) {
   	String result = null;
