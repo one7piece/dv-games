@@ -66,19 +66,20 @@ public class CreateBookServlet extends HttpServlet {
     Book book = bookMaker.getPersistence().findBook(bookId);
     if (book != null) { 
     	try {
-    		BookParser parser = bookMaker.findParser(book.getCurrentPageUrl());
-    		int batchSize = parser.getBatchSize();
+    		BookParser parser = bookMaker.findParser(book.getStartPageUrl());
+    		int batchSize = (parser != null ? parser.getBatchSize() : 100);
         bookMaker.createPages(book, batchSize);
         if (book.getStatus() == BookStatus.WORKING) {
-					int sec = parser.getDelayTimeSec();
-					if (parser.getDelayTimeSec() > 0) {
-						log.info("Delaying for " + sec + " seconds before reading next batch");
-						try {
-							Thread.sleep(parser.getDelayTimeSec()*1000);
-						} catch (InterruptedException e) {
-						}
-					}
-        	
+        	if (parser != null) {
+  					int sec = parser.getDelayTimeSec();
+  					if (parser.getDelayTimeSec() > 0) {
+  						log.info("Delaying for " + sec + " seconds before reading next batch");
+  						try {
+  							Thread.sleep(parser.getDelayTimeSec()*1000);
+  						} catch (InterruptedException e) {
+  						}
+  					}
+        	}        	
           bookMaker.scheduleJob(book);
         }          	
     		
