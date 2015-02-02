@@ -1,6 +1,5 @@
 
 importPackage(Packages.java.util);
-importPackage(Packages.com.dv.gtusach.server.common);
 importPackage(Packages.org.jsoup);
 importPackage(Packages.org.jsoup.nodes);
 importPackage(Packages.org.jsoup.select);
@@ -40,35 +39,23 @@ function getNextPageUrl(target, currentPageURL, rawChapterHtml) {
 }
 
 function extractChapterHtml(target, request, rawChapterHtml) {  
-  var bookText = rawChapterHtml;
-  if (request.indexOf("/chapter/") == -1) {
-    var marker = "FetchChapter(\"";    
-    var index = rawChapterHtml.indexOf(marker);    
-    if (index != -1) {      
-      var index1 = index + marker.length;
-      var index2 = rawChapterHtml.indexOf("\"", index1);
-      var chapterId = rawChapterHtml.substring(index1, index2);      
-      logInfo("Found chapter id: " + chapterId);
-      if (!chapterId.toLowerCase().endsWith(".html")) {
-        chapterId += ".html";
-      }
-      bookText = context.executeRequest(target, "/chapter/" + chapterId);
-      if (bookText == null || bookText.trim().length == 0) {
-        throwError("Failed to load request: " + "/chapter/" + chapterId);
-      }        
-    } else {
-    	throwError("Cannot find FetchChapter marker in:\n" + rawChapterHtml);
-    }
+  // extract data from <body> element
+  var doc = Jsoup.parse(rawChapterHtml);
+  var body = doc.getElementsByTag("body").first();  
+  var list = body.select("div#chapter_content");
+  if (list == null || list.size() == 0) {
+  	throwError("Cannot find chapter marker: div#chapter_content");
   }
   
-  // get the html between the body tags
-  var index = bookText.indexOf("<body>");
-  var index2 = bookText.indexOf("</body>");
-  if (index != -1 && index2 != -1) {
-    bookText = bookText.substring(index+"<body>".length, index2);
+  var buffer = new java.lang.StringBuilder(5000);
+  for (var i=0; i<list.size(); i++) {  	
+  	extractNodeText(list.get(i), buffer);
+  	//log.info("found chapter text: [" + buffer.toString() + "]");
   }
-  
-  index = context.getBookTemplate().indexOf("</body>");
+  //note that toString() return an instance of java.lang.String
+  var bookText = String(buffer.toString());	
+    
+  var index = context.getBookTemplate().indexOf("</body>");
   var formatChapterHtml = context.getBookTemplate().substring(0, index-1) + bookText + "</body></html>";
   var chapterHtml = new ChapterHtml();
   
@@ -113,6 +100,7 @@ function extractChapterHtml(target, request, rawChapterHtml) {
       }
     }
   } 
+  
   chapterHtml.setHtml(formatChapterHtml);
   //logInfo("\n############ Chapter HTML #####################(" + chapterHtml.getHtml().length() + ")\n" 
   //		+ chapterHtml.getHtml() 
@@ -132,3 +120,16 @@ function createAttachments(href, imageData) {
   return result;    
 }
 
+function extractNodeText(node, buffer) {
+	if (node instanceof TextNode) {
+		var text = node.getWholeText();
+		if (text.toLowerCase().indexOf("ads by google") == -1) {
+  		buffer.append(text + "<br/>");
+		}
+	} else {
+		for (var i=0; i<node.childNodes().size(); i++) {
+			var child = node.childNodes().get(i);		
+			extractNodeText(child, buffer);
+		}
+	}
+}

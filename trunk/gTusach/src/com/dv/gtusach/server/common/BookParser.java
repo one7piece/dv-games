@@ -1,6 +1,8 @@
 package com.dv.gtusach.server.common;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -13,6 +15,10 @@ import org.mozilla.javascript.Scriptable;
 import org.mozilla.javascript.ScriptableObject;
 
 import com.dv.gtusach.shared.BadDataException;
+import com.google.appengine.api.images.Image;
+import com.google.appengine.api.images.ImagesService;
+import com.google.appengine.api.images.ImagesServiceFactory;
+import com.google.appengine.api.images.Transform;
 
 public class BookParser {
   protected static final Logger log = Logger.getLogger(BookParser.class.getCanonicalName());
@@ -132,7 +138,27 @@ public class BookParser {
   public String getDomainName() {
   	return domainName;
   }
-    
+  
+  public List<AttachmentData> createAttachments(String ref, byte[] imageData, int pageHeight) {
+  	List<AttachmentData> result = new ArrayList<AttachmentData>();
+  	ImagesService imagesService = ImagesServiceFactory.getImagesService();  	
+  	Image image = ImagesServiceFactory.makeImage(imageData);
+  	float h = (float)image.getHeight();
+		log.info("createAttachments - " + "image height=" + h);
+  	float y = 0.0f;
+  	int count = 0;
+  	while (y < h) {
+    	Transform crop = ImagesServiceFactory.makeCrop(0.0f, y/h, 1.0, (y+pageHeight) >= h ? 1.0f : (y+pageHeight)/h );
+    	Image newImage = imagesService.applyTransform(crop, image);
+    	String partRef = count + "-" + ref;
+    	AttachmentData attachment = new AttachmentData(partRef, newImage.getImageData());
+    	result.add(attachment);
+    	y += pageHeight;
+    	count++;
+  	}
+  	return result;
+  }
+  
   public ChapterHtml extractChapterHtml(String target, String request, String rawChapterHtml) throws BadDataException {
   	Object retval = executeJSFunction("extractChapterHtml", new Object[] {target, request, rawChapterHtml});
   	if (!(retval instanceof ChapterHtml)) {

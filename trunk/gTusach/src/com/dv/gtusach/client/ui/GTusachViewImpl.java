@@ -19,6 +19,7 @@ import com.dv.gtusach.shared.ParserScript;
 import com.dv.gtusach.shared.User;
 import com.dv.gtusach.shared.User.PermissionEnum;
 import com.google.gwt.core.client.GWT;
+import com.google.gwt.dom.client.AnchorElement;
 import com.google.gwt.dom.client.Style.Cursor;
 import com.google.gwt.event.dom.client.ClickEvent;
 import com.google.gwt.event.dom.client.ClickHandler;
@@ -34,6 +35,7 @@ import com.google.gwt.user.client.Timer;
 import com.google.gwt.user.client.Window;
 import com.google.gwt.user.client.ui.Anchor;
 import com.google.gwt.user.client.ui.Button;
+import com.google.gwt.user.client.ui.CheckBox;
 import com.google.gwt.user.client.ui.Composite;
 import com.google.gwt.user.client.ui.DisclosurePanel;
 import com.google.gwt.user.client.ui.FlexTable;
@@ -74,6 +76,7 @@ public class GTusachViewImpl extends Composite implements GTusachView, ClickHand
 	@UiField Button deleteCancelButton;
 	
 	@UiField Label messageLabel;
+	@UiField CheckBox showBookDetails;
 	
 	Button createBookButton = new Button("Create");
 	Button logInOutButton = new Button("");
@@ -109,11 +112,14 @@ public class GTusachViewImpl extends Composite implements GTusachView, ClickHand
 		initWidget(uiBinder.createAndBindUi(this));
 		
 		initProfilePanel();
-		profilePanel.setOpen(true);
+		//profilePanel.setOpen(true);
 		
 		initCreatePanel();
 
 		initScriptPanel();
+		
+		showBookDetails.setValue(false);
+		showBookDetails.addClickHandler(this);
 		
 		initBookListPanel();
 		
@@ -253,50 +259,54 @@ public class GTusachViewImpl extends Composite implements GTusachView, ClickHand
 	private void initBookListPanel() {
 		bookListTable.setHeight("30px");
 		bookListTable.setText(0, 0, "");
-		bookListTable.getColumnFormatter().setWidth(0, "50px");
+		bookListTable.getColumnFormatter().setWidth(0, "75px");
 		bookListTable.setText(0, 1, "Title");
 		bookListTable.getColumnFormatter().setWidth(1, "100px");
 		bookListTable.setText(0, 2, "Status");
 		bookListTable.getColumnFormatter().setWidth(2, "50px");
-		bookListTable.setText(0, 3, "#Pages");
+		bookListTable.setText(0, 3, "#Pages");		
 		bookListTable.getColumnFormatter().setWidth(3, "50px");
+		
 		bookListTable.setText(0, 4, "Date");
-		//bookListTable.getColumnFormatter().setWidth(4, "50px");
 		bookListTable.setText(0, 5, "Error Message");
-		bookListTable.setText(0, 6, "Current Page URL");
+		bookListTable.setText(0, 6, "Current Page URL");			
 
+		//for (int i=4; i<=6; i++) {
+			//bookListTable.getCellFormatter().setVisible(0, i, showBookDetails.getValue());
+		//}
+		
 		// Add styles to elements in the stock list table.
 		bookListTable.setCellPadding(5);
 
 		// add style (see StockWatcher.css) to elements in stock list table
 		bookListTable.getRowFormatter().addStyleName(0, "bookListHeader");
 		bookListTable.addStyleName("bookListTable");
-		bookListTable.getCellFormatter().addStyleName(0, 2, "bookListNumericColumn");
+		bookListTable.getCellFormatter().addStyleName(0, 2, "bookListNumericColumn");				
 		
 		updateBookListPanelSize();		
 	}
 	
 	private void updateBookListPanelSize() {
-		int heightPx = Window.getClientHeight() - bookListPanel.getAbsoluteTop() - 50;		
+		int heightPx = Math.max(200, Window.getClientHeight() - bookListPanel.getAbsoluteTop() - 50);
 		bookListPanel.setHeight(heightPx + "px");		
 	}
 	
 	private void updateBook(int row, Book book) {
 		HorizontalPanel panel = new HorizontalPanel();
-		panel.setSpacing(5);
+		panel.setSpacing(10);
 		bookListTable.setWidget(row, 0, panel);
 
 		boolean isWorking = (book.getStatus() == BookStatus.WORKING);
 
-		panel.add(createImageWidget(row, book.getId(), ActionEnum.Download, 
+		panel.add(createImageWidget(row, book, ActionEnum.Download, 
 				listener.hasPermission(PermissionEnum.Download) && book.isEpubCreated() && !isWorking));
-		panel.add(createImageWidget(row, book.getId(), ActionEnum.Resume, 
+		panel.add(createImageWidget(row, book, ActionEnum.Resume, 
 				listener.hasPermission(PermissionEnum.Update) && !isWorking));
 
 		if (isWorking) {
-			panel.add(createImageWidget(row, book.getId(), ActionEnum.Abort, listener.hasPermission(PermissionEnum.Update)));
+			panel.add(createImageWidget(row, book, ActionEnum.Abort, listener.hasPermission(PermissionEnum.Update)));
 		} else {
-			panel.add(createImageWidget(row, book.getId(), ActionEnum.Delete, listener.hasPermission(PermissionEnum.Delete)));
+			panel.add(createImageWidget(row, book, ActionEnum.Delete, listener.hasPermission(PermissionEnum.Delete)));
 		}
 
 		bookListTable.setText(row, 1, book.getTitle());
@@ -304,19 +314,26 @@ public class GTusachViewImpl extends Composite implements GTusachView, ClickHand
 		bookListTable.setText(row, 3, book.getPages());
 		bookListTable.setText(row, 4, book.getLastUpdatedTime().toString());
 		bookListTable.setText(row, 5, book.getErrorMsg());
-		bookListTable.setText(row, 6, book.getCurrentPageUrl());
+		bookListTable.setText(row, 6, book.getCurrentPageUrl());		
 	}
 
-	private Widget createImageWidget(int row, String bookId, ActionEnum action,
+	private Widget createImageWidget(int row, Book book, ActionEnum action,
 			boolean enabled) {
 		Anchor anchor = new Anchor();
 		try {
 			anchor.getElement().getStyle().setCursor(Cursor.POINTER);
-			Image image = new ActionImage(row, bookId, action, enabled);
+			Image image = new ActionImage(row, book.getId(), action, enabled);
 			anchor.getElement().appendChild(image.getElement());
-			String ref = action.name() + "@" + bookId;
+			String ref = action.name() + "@" + book.getId();
 			anchor.setName(ref);
-			anchor.addClickHandler(this);
+			if (action == ActionEnum.Download) {
+				AnchorElement.as(anchor.getElement()).setType("application/epub+zip");
+				String url = "/downloadBook/" + book.getTitle() + ".epub" + "?bookId=" + book.getId();
+				anchor.setHref(url);
+			} else {
+				//anchor.setHref("/downloadBook?bookId=" + bookId);
+				anchor.addClickHandler(this);
+			}
 		} catch (Exception ex) {
 			ex.printStackTrace();
 		}
@@ -404,6 +421,9 @@ public class GTusachViewImpl extends Composite implements GTusachView, ClickHand
 			} else {
 				currentScript = null;
 			}
+		} else if (event.getSource().equals(showBookDetails)) {
+			List<Book> list = new ArrayList<Book>(bookTableMap.values());
+			setBooks(list, false);								
 		}
 		
 	}
@@ -457,6 +477,12 @@ public class GTusachViewImpl extends Composite implements GTusachView, ClickHand
 				}
 			}
 		}
+		
+		for (int i=0; i<bookListTable.getRowCount(); i++) {
+			bookListTable.getCellFormatter().setVisible(i, 4, showBookDetails.getValue());
+			bookListTable.getCellFormatter().setVisible(i, 5, showBookDetails.getValue());
+			bookListTable.getCellFormatter().setVisible(i, 6, showBookDetails.getValue());
+		}				
 	}
 	
 	@Override

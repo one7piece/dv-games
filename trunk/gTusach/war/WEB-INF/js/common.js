@@ -1,4 +1,6 @@
 importPackage(Packages.java.util.logging);
+importPackage(Packages.com.dv.gtusach.server.common);
+importPackage(Packages.com.dv.gtusach.shared);
 
 var Chuong_PREFIX = "\u0043\u0068\u01B0\u01A1\u006E\u0067"; // Chuong
 var CHUONG_PREFIX = "\u0043\u0048\u01AF\u01A0\u004E\u0047"; // CHUONG 
@@ -90,3 +92,39 @@ function isValidChapterHtml(chapterHtml) {
 	
 	return valid;
 }
+
+function createChapterImageHtml(imageArr) {
+  var result = new ChapterHtml();
+  
+  var text = "<div cellpadding=\"0\" cellspacing=\"0\" border=\"0\" align=\"center\">";
+  for (var i=0; i<imageArr.length; i++) {
+    // load image from server
+    var image = context.loadResource(imageArr[i]);
+    if (image != null && image.length > 0) {    
+      logInfo("Loaded chapter image: " + imageArr[i]); 
+      var index = imageArr[i].lastIndexOf("/");
+      var href = imageArr[i];
+      if (index != -1) {
+        href = href.substring(index+1);
+      }
+      var attachment = new AttachmentData(href, image);
+      result.add(attachment);
+      // create html element
+      var imgHtml = "<img style=\"width:100%\" src=\"" + attachment.getHref() + "\" />";
+      text += imageHtml      
+    } else {
+      logError("Failed to load image resource: " + imageArr[i]);
+    }    
+  }
+  text += "</div>";  
+  logInfo("createChapterImageHtml: html=" + text);
+  
+  var index = context.getBookTemplate().indexOf("</body>");
+  result.setHtml(context.getBookTemplate().substring(0, index-1) + text + "</body></html>");           
+  
+  return result;
+}
+
+
+
+// line: 130

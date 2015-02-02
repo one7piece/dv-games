@@ -1,5 +1,4 @@
 ﻿importPackage(Packages.java.util);
-importPackage(Packages.com.dv.gtusach.server.common);
 importPackage(Packages.org.jsoup);
 importPackage(Packages.org.jsoup.nodes);
 importPackage(Packages.org.jsoup.select);

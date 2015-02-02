@@ -87,7 +87,7 @@
 			</g:HorizontalPanel>
 					
 			<g:FlowPanel>
-				<g:DisclosurePanel ui:field="profilePanel" width="" height="" styleName="{style.disclosureHeader}" open="true">
+				<g:DisclosurePanel ui:field="profilePanel" width="" height="" styleName="{style.disclosureHeader}">
 					<g:header>Profile</g:header>
 					<g:FlexTable ui:field="profileTable" width="" height="" styleName="{style.profileTable}" />
 				</g:DisclosurePanel>
@@ -117,6 +117,7 @@
 			</g:FlowPanel>
 			<g:FlowPanel width="100%" styleName="{style.bottomPanel}">
 				<g:Label ui:field="messageLabel" text="" styleName="margin-left"/>
+				<g:CheckBox ui:field="showBookDetails" text="Show Details"/>				
 				<g:ScrollPanel ui:field="bookListPanel" width="99%" styleName="floatLeft">
 					<g:FlexTable ui:field="bookListTable" height="100%" width="100%" styleName="{style.borderPanel}" />
 				</g:ScrollPanel>
