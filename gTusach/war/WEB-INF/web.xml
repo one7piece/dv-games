@@ -31,7 +31,7 @@
 	</servlet>
 	<servlet-mapping>
 		<servlet-name>downloadBookServlet</servlet-name>
-		<url-pattern>/downloadBook</url-pattern>
+		<url-pattern>/downloadBook/*</url-pattern>
 	</servlet-mapping>
 	
   <!-- Default page to serve -->

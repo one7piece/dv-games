@@ -1,9 +1,10 @@
 
 importPackage(Packages.java.util);
-importPackage(Packages.com.dv.gtusach.server.common);
 importPackage(Packages.org.jsoup);
 importPackage(Packages.org.jsoup.nodes);
 importPackage(Packages.org.jsoup.select);
+
+var DEVICE_HEIGHT = 700;
 
 function getBatchSize() {
 	return 100;
@@ -99,16 +100,72 @@ function extractChapterHtml(targetStr, requestStr, book) {
   }
   
   var chapterHtml = null;
-  if (textStr != null) {
+  if (textStr != null && textStr.length > 500) {
     chapterHtml = new ChapterHtml();
     var index = context.getBookTemplate().indexOf("</body>");
     chapterHtml.setHtml(context.getBookTemplate().substring(0, index-1) + textStr + "</body></html>");           
+    if (!isValidChapterHtml(chapterHtml)) {
+      throw new BadDataException("No chapter content found in html");
+    }    
+  } else {
+    var imageArr = new Array();
+    // handle image page
+    var index = book.indexOf("class=\"chi_tiet\"");
+    if (index != -1) {
+      var index1 = book.indexOf("arr_image", index);
+      var index2 = book.indexOf("load_next_image", index);
+      if (index1 != -1 && index2 > index1) {
+        index = index1;
+        while (index != -1 && index < index2) {
+          var i = book.indexOf("http://", index);
+          var j = book.indexOf("\";", index);
+          if (i != -1 && j > i) {
+            imageArr.push(book.substring(i, j));
+            index = j;
+          } else {
+            break;
+          }
+        }
+      } else {
+        logInfo("Missing arr_image, load_next_image script!");
+      }
+      chapterHtml = createChapterImageHtml(imageArr);
+    }    
   }
-  if (!isValidChapterHtml(chapterHtml)) {
-  	throw new BadDataException("No chapter content found in html");
-  }
-  
+    
   return chapterHtml;
 }
 
-
+function createChapterImageHtml(imageArr) {
+  var result = new ChapterHtml();
+  
+  var text = "<div cellpadding=\"0\" cellspacing=\"0\" border=\"0\" align=\"center\">";
+  for (var i=0; i<imageArr.length; i++) {
+    // load image from server
+    var image = context.loadResource(imageArr[i]);
+    if (image != null && image.length > 0) {    
+      logInfo("Loaded chapter image: " + imageArr[i]); 
+      var index = imageArr[i].lastIndexOf("/");
+      var href = imageArr[i];
+      if (index != -1) {
+        href = href.substring(index+1);
+      }
+      var list = context.createAttachments(href, image, DEVICE_HEIGHT);
+      result.getAttachments().addAll(list);
+      for (var j=0; j<list.size(); j++) {
+        // create html element
+        var imgHtml = "<img style=\"width:100%\" src=\"" + list.get(j).getHref() + "\" />";
+        text += imgHtml;  
+      }
+    } else {
+      logError("Failed to load image resource: " + imageArr[i]);
+    }    
+  }
+  text += "</div>";  
+  logInfo("createChapterImageHtml: html=" + text);
+  
+  var index = context.getBookTemplate().indexOf("</body>");
+  result.setHtml(context.getBookTemplate().substring(0, index-1) + text + "</body></html>");           
+  
+  return result;
+}

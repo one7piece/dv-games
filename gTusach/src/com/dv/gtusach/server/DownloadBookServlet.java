@@ -35,11 +35,12 @@ public class DownloadBookServlet extends HttpServlet {
 
 	private void downloadBook(HttpServletRequest req, HttpServletResponse resp)
 			throws IOException {
-		resp.setContentType("application/json; charset=utf-8");
+		//resp.setContentType("application/json; charset=utf-8");
 		resp.setHeader("Cache-Control", "no-cache");
 		final String bookId = req.getParameter("bookId");
 		if (bookId == null || bookId.length() == 0) {
 			log.log(Level.WARNING, "Missing bookId!");
+			resp.setContentType("application/json; charset=utf-8");
 			return;
 		}
 
@@ -49,10 +50,11 @@ public class DownloadBookServlet extends HttpServlet {
 		byte[] data = bookMaker.getPersistence().loadBookData(bookId);
 		if (book != null && data != null) {
 			try {
-				resp.setContentType("application/octet-stream");
+				resp.setContentType("application/epub+zip");
 				resp.setContentLength(data.length);
-				resp.setHeader("Content-Disposition", "attachment; filename*=\"utf-8''"
-						+ book.getTitle() + ".epub");
+				//resp.setHeader("Content-Disposition", "attachment; filename=\"" + book.getTitle() + ".epub\"");
+				//resp.setHeader("Content-Disposition", "attachment; filename*=\"utf-8''"
+				//		+ book.getTitle() + ".epub");
 				ServletOutputStream op = resp.getOutputStream();
 				op.write(data);				
 				op.flush();
